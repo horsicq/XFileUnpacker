@@ -1,0 +1,20 @@
+Changelog
+=========
+
+Version 0.1.0 (2025-10-20)
+--------------------------
+- Initial project setup
+- Generic CMake build system for Qt5/Qt6
+- Dual-build support (GUI and CLI applications)
+- Basic project structure with documentation framework
+- MIT License
+- Added global headers and configuration
+
+Known Issues:
+- None yet
+
+Future Improvements:
+- Implementation of core unpacking functionality
+- Enhanced error handling
+- More comprehensive logging
+- Unit tests
