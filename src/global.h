@@ -7,7 +7,7 @@
 #define APP_NAME "XFileUnpacker"
 #define APP_VERSION "0.1.0"
 #define APP_ORGANIZATION "XFileUnpacker"
-#define APP_DESCRIPTION "File unpacking utility with Qt5/Qt6 support"
+#define APP_DESCRIPTION "File unpacking utility"
 
 namespace Global {
     constexpr const char* VERSION = APP_VERSION;
