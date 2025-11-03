@@ -1,6 +1,4 @@
 # Source directory CMakeLists.txt
-add_subdirectory(gui)
+# add_subdirectory(gui)  # GUI not implemented yet
 add_subdirectory(cli)
 
-# Common headers
-install(FILES global.h DESTINATION include)
