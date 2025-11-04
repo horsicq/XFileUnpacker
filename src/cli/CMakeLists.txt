@@ -1,6 +1,14 @@
 # CLI Application CMakeLists.txt
 set(TARGET_NAME xfuc)
 
+add_definitions(-DUSE_DEX)
+add_definitions(-DUSE_PDF)
+add_definitions(-DUSE_ARCHIVE)
+
+if(WIN32)
+    add_definitions(-DNOMINMAX)
+endif()
+
 # Add 3rd party libraries
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/3rdparty/bzip2 ${CMAKE_BINARY_DIR}/3rdparty/bzip2)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/3rdparty/lzma ${CMAKE_BINARY_DIR}/3rdparty/lzma)

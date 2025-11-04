@@ -120,12 +120,7 @@ int main(int argc, char *argv[])
 
     // Detect file type
     QSet<XBinary::FT> stFileTypes = XFormats::getFileTypes(&file, true);
-    XBinary::FT fileType = XBinary::FT_BINARY;
-    
-    if (!stFileTypes.isEmpty()) {
-        // Get the first (most specific) file type
-        fileType = *stFileTypes.begin();
-    }
+    XBinary::FT fileType = XBinary::_getPrefFileType(&stFileTypes);
     
     QString sFileTypeString = XBinary::fileTypeIdToString(fileType);
 
