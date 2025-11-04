@@ -34,13 +34,13 @@
 void printError(const QString &sMessage)
 {
     QTextStream stream(stderr);
-    stream << "Error: " << sMessage << endl;
+    stream << "Error: " << sMessage << Qt::endl;
 }
 
 void printInfo(const QString &sMessage)
 {
     QTextStream stream(stdout);
-    stream << sMessage << endl;
+    stream << sMessage << Qt::endl;
 }
 
 int main(int argc, char *argv[])
