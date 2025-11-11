@@ -24,7 +24,7 @@ A generic file unpacking utility with both Console (CLI) and Graphical User Inte
 ### Clone and Build
 
 ```bash
-git clone <repository-url> XFileUnpacker
+git clone https://github.com/horsicq/XFileUnpacker.git --recursive
 cd XFileUnpacker
 mkdir build
 cd build
