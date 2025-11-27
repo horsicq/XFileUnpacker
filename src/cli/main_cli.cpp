@@ -168,8 +168,9 @@ int main(int argc, char *argv[])
             QString sName = record.mapProperties.value(XBinary::FPART_PROP_ORIGINALNAME).toString();
             if (sName.isEmpty()) sName = QString("record_%1").arg(i);
             
-            qint64 nCompressedSize = record.mapProperties.value(XBinary::FPART_PROP_COMPRESSEDSIZE, record.nStreamSize).toLongLong();
-            qint64 nUncompressedSize = record.mapProperties.value(XBinary::FPART_PROP_UNCOMPRESSEDSIZE, record.nDecompressedSize).toLongLong();
+            qint64 nCompressedSize = record.mapProperties.value(XBinary::FPART_PROP_COMPRESSEDSIZE).toLongLong();
+            if (nCompressedSize == 0) nCompressedSize = record.nStreamSize;
+            qint64 nUncompressedSize = record.mapProperties.value(XBinary::FPART_PROP_UNCOMPRESSEDSIZE).toLongLong();
             quint32 nCRC32 = record.mapProperties.value(XBinary::FPART_PROP_CRC_VALUE, 0).toUInt();
             QString sCRC32 = nCRC32 != 0 ? QString::number(nCRC32, 16).toUpper() : QString("-");
 
