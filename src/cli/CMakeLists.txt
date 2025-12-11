@@ -4,6 +4,7 @@ set(TARGET_NAME xfuc)
 add_definitions(-DUSE_DEX)
 add_definitions(-DUSE_PDF)
 add_definitions(-DUSE_ARCHIVE)
+add_definitions(-DXSIMD_ENABLE)
 
 if(WIN32)
     add_definitions(-DNOMINMAX)
@@ -14,6 +15,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/3rdparty/bzip2 ${C
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/3rdparty/lzma ${CMAKE_BINARY_DIR}/3rdparty/lzma)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/3rdparty/zlib ${CMAKE_BINARY_DIR}/3rdparty/zlib)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/3rdparty/ppmd ${CMAKE_BINARY_DIR}/3rdparty/ppmd)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/Formats/xsimd ${CMAKE_BINARY_DIR}/xsimd)
 
 # Include XFormats and XArchive
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/Formats/xformats.cmake)
@@ -44,6 +46,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE bzip2)
 target_link_libraries(${TARGET_NAME} PRIVATE lzma)
 target_link_libraries(${TARGET_NAME} PRIVATE zlib)
 target_link_libraries(${TARGET_NAME} PRIVATE ppmd)
+target_link_libraries(${TARGET_NAME} PRIVATE xsimd)
 
 if(WIN32)
     target_link_libraries(${TARGET_NAME} PRIVATE Wintrust)
