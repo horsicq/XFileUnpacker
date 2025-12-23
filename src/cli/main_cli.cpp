@@ -27,9 +27,12 @@
 #include <QDir>
 #include <QDebug>
 #include <QTextStream>
+#include <QThread>
 #include "../global.h"
 #include "xformats.h"
 #include "xarchives.h"
+#include "xoptions.h"
+#include "xmodel_archiverecords.h"
 
 void printError(const QString &sMessage)
 {
@@ -41,6 +44,73 @@ void printInfo(const QString &sMessage)
 {
     QTextStream stream(stdout);
     stream << sMessage << Qt::endl;
+}
+
+void progressCallback(void *pUserData, XBinary::PDSTRUCT *pPdStruct)
+{
+    Q_UNUSED(pUserData)
+    
+    if (pPdStruct) {
+        qint64 nTotalCurrent = 0;
+        qint64 nTotalAll = 0;
+        QStringList listStatuses;
+        
+        // Sum all valid records
+        for (qint32 i = 0; i < XBinary::N_NUMBER_PDRECORDS; i++) {
+            if (pPdStruct->_pdRecord[i].bIsValid) {
+                nTotalCurrent += pPdStruct->_pdRecord[i].nCurrent;
+                nTotalAll += pPdStruct->_pdRecord[i].nTotal;
+                
+                QString sStatus = pPdStruct->_pdRecord[i].sStatus;
+                if (!sStatus.isEmpty()) {
+                    listStatuses.append(sStatus);
+                }
+            }
+        }
+        
+        if (nTotalAll > 0) {
+            qint32 nPercent = (nTotalCurrent * 100) / nTotalAll;
+            QString sStatus = listStatuses.join("/");
+            
+            QTextStream stream(stdout);
+            stream << QString("\rProgress: %1% (%2/%3)")
+                      .arg(nPercent)
+                      .arg(nTotalCurrent)
+                      .arg(nTotalAll);
+            
+            if (!sStatus.isEmpty()) {
+                stream << " - " << sStatus;
+            }
+            
+            stream.flush();
+        }
+    }
+}
+
+void testProgressCallback()
+{
+    printInfo("Testing progress callback...");
+    
+    XBinary::PDSTRUCT pdStruct = XBinary::createPdStruct();
+    pdStruct.pCallback = progressCallback;
+    pdStruct.pCallbackUserData = nullptr;
+    pdStruct.nLastCallbackTime = 0;
+    
+    // Initialize progress for record 0
+    XBinary::setPdStructInit(&pdStruct, 0, 100);
+    pdStruct._pdRecord[0].sStatus = "Processing files";
+    
+    // Simulate progress updates
+    for (qint32 i = 0; i <= 100; i += 5) {
+        pdStruct._pdRecord[0].nCurrent = i;
+        progressCallback(nullptr, &pdStruct);
+        
+        // Sleep for a short time to make progress visible
+        QThread::msleep(100);
+    }
+    
+    QTextStream(stdout) << "\n";
+    printInfo("Progress callback test completed");
 }
 
 int main(int argc, char *argv[])
@@ -73,11 +143,21 @@ int main(int argc, char *argv[])
                                   "Test archive integrity by extracting to temporary location");
     parser.addOption(testOption);
 
+    QCommandLineOption testProgressOption(QStringList() << "test-progress",
+                                         "Test progress callback display");
+    parser.addOption(testProgressOption);
+
     // Add positional argument for input file
     parser.addPositionalArgument("file", "File to unpack");
 
     // Process command line arguments
     parser.process(app);
+
+    // Check for test progress option first (doesn't need a file)
+    if (parser.isSet(testProgressOption)) {
+        testProgressCallback();
+        return 0;
+    }
 
     const QStringList listArgs = parser.positionalArguments();
     if (listArgs.isEmpty()) {
@@ -135,54 +215,27 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Cast to archive if it's an archive format
-    XArchive *pArchive = dynamic_cast<XArchive *>(pBinary);
+    // Get archive records
+    XBinary::PDSTRUCT pdStruct = XBinary::createPdStruct();
+    pdStruct.pCallback = progressCallback;
+    pdStruct.pCallbackUserData = nullptr;
+    pdStruct.nLastCallbackTime = 0;
+    
+    QList<XBinary::ARCHIVERECORD> listRecords = XFormats::getArchiveRecords(fileType, &file, -1, false, -1, &pdStruct);
 
-    if (!pArchive) {
-        printError(QString("Not an archive format: %1").arg(sFileTypeString));
+    QTextStream(stdout) << "\n";  // Clear progress line
+    printInfo(QString("Number of records: %1").arg(listRecords.count()));
+
+    if (listRecords.isEmpty()) {
+        printError("Archive contains no records");
         delete pBinary;
         file.close();
         return 1;
     }
 
-    // Get archive records
-    XBinary::PDSTRUCT pdStruct = XBinary::createPdStruct();
-    QList<XBinary::ARCHIVERECORD> listRecords = XFormats::getArchiveRecords(fileType, &file, -1, false, -1, &pdStruct);
-
-    printInfo(QString("Number of records: %1").arg(listRecords.count()));
-
-    if (listRecords.isEmpty()) {
-        printError("Archive contains no records");
-        delete pArchive;
-        file.close();
-        return 1;
-    }
-
     if (bListOnly) {
-        printInfo("Archive contents:");
-        printInfo(QString("%-50s %15s %15s %10s").arg("Name").arg("Compressed").arg("Uncompressed").arg("CRC32"));
-        printInfo(QString("-").repeated(90));
-
-        for (qint32 i = 0; i < listRecords.count(); i++) {
-            XBinary::ARCHIVERECORD record = listRecords.at(i);
-            QString sName = record.mapProperties.value(XBinary::FPART_PROP_ORIGINALNAME).toString();
-            if (sName.isEmpty()) sName = QString("record_%1").arg(i);
-            
-            qint64 nCompressedSize = record.mapProperties.value(XBinary::FPART_PROP_COMPRESSEDSIZE).toLongLong();
-            if (nCompressedSize == 0) nCompressedSize = record.nStreamSize;
-            qint64 nUncompressedSize = record.mapProperties.value(XBinary::FPART_PROP_UNCOMPRESSEDSIZE).toLongLong();
-            quint32 nCRC32 = record.mapProperties.value(XBinary::FPART_PROP_CRC_VALUE, 0).toUInt();
-            QString sCRC32 = nCRC32 != 0 ? QString::number(nCRC32, 16).toUpper() : QString("-");
-
-            printInfo(QString("%-50s %15lld %15lld %10s")
-                      .arg(sName)
-                      .arg(nCompressedSize)
-                      .arg(nUncompressedSize)
-                      .arg(sCRC32));
-        }
-
-        printInfo(QString("-").repeated(90));
-        printInfo(QString("Total: %1 file(s)").arg(listRecords.count()));
+        XModel_ArchiveRecords model(pBinary->getAvailableFPARTProperties(), &listRecords);
+        XOptions::printModel(&model);
     } else if (bTest) {
         printInfo("Testing archive integrity...");
 
@@ -207,7 +260,7 @@ int main(int argc, char *argv[])
             printInfo(QString("Test PASSED: Successfully extracted %1 file(s)").arg(nExtractedFiles));
         } else {
             printError("Test FAILED: Could not extract archive");
-            delete pArchive;
+            delete pBinary;
             file.close();
             return 1;
         }

@@ -20,11 +20,13 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../dep/Formats/xsimd ${CMAKE_BINAR
 # Include XFormats and XArchive
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/Formats/xformats.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/xarchives.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/Controls/xmodel_archiverecords.cmake)
 
 set(SOURCES
     main_cli.cpp
     ${XFORMATS_SOURCES}
     ${XARCHIVES_SOURCES}
+    ${XMODEL_ARCHIVERECORDS_SOURCES}
 )
 
 set(HEADERS
@@ -53,7 +55,10 @@ if(WIN32)
     target_link_libraries(${TARGET_NAME} PRIVATE Crypt32)
 endif()
 
-target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(${TARGET_NAME} PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_CURRENT_LIST_DIR}/../../dep/Controls
+)
 
 # Installation
 install(TARGETS ${TARGET_NAME} DESTINATION bin)

@@ -29,7 +29,7 @@ add_subdirectory(src)
 
 # Enable testing
 enable_testing()
-add_subdirectory(test)
+add_subdirectory(tests)
 
 # Installation targets
 install(FILES README.md DESTINATION .)
