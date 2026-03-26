@@ -27,7 +27,6 @@
 #include <QDir>
 #include <QDebug>
 #include <QTextStream>
-#include <QThread>
 #include "../global.h"
 #include "xformats.h"
 #include "xarchives.h"
@@ -87,32 +86,6 @@ void progressCallback(void *pUserData, XBinary::PDSTRUCT *pPdStruct)
     }
 }
 
-void testProgressCallback()
-{
-    printInfo("Testing progress callback...");
-    
-    XBinary::PDSTRUCT pdStruct = XBinary::createPdStruct();
-    pdStruct.pCallback = progressCallback;
-    pdStruct.pCallbackUserData = nullptr;
-    pdStruct.nLastCallbackTime = 0;
-    
-    // Initialize progress for record 0
-    XBinary::setPdStructInit(&pdStruct, 0, 100);
-    pdStruct._pdRecord[0].sStatus = "Processing files";
-    
-    // Simulate progress updates
-    for (qint32 i = 0; i <= 100; i += 5) {
-        pdStruct._pdRecord[0].nCurrent = i;
-        progressCallback(nullptr, &pdStruct);
-        
-        // Sleep for a short time to make progress visible
-        QThread::msleep(100);
-    }
-    
-    QTextStream(stdout) << "\n";
-    printInfo("Progress callback test completed");
-}
-
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -121,52 +94,53 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(APP_ORGANIZATION);
 
     QCommandLineParser parser;
-    parser.setApplicationDescription(Global::DESCRIPTION);
+    parser.setApplicationDescription(
+        QString("%1\n\n"
+                "Commands:\n"
+                "  e  Extract files from archive (without directory names)\n"
+                "  l  List contents of archive\n"
+                "  t  Test integrity of archive\n"
+                "  x  eXtract files with full paths")
+            .arg(Global::DESCRIPTION));
     parser.addHelpOption();
     parser.addVersionOption();
 
-    // Add command line options
-    QCommandLineOption outputOption(QStringList() << "o" << "output",
-                                    "Output directory for extracted files",
+    QCommandLineOption outputOption(QStringList() << "o",
+                                    "Set output directory.",
                                     "directory");
     parser.addOption(outputOption);
 
-    QCommandLineOption extractOption(QStringList() << "x" << "extract",
-                                     "Extract/unpack archive (default action)");
-    parser.addOption(extractOption);
+    QCommandLineOption passwordOption(QStringList() << "p",
+                                      "Set password.",
+                                      "password");
+    parser.addOption(passwordOption);
 
-    QCommandLineOption listOption(QStringList() << "l" << "list",
-                                  "List archive contents without extracting");
-    parser.addOption(listOption);
+    QCommandLineOption yesOption(QStringList() << "y",
+                                 "Assume Yes on all queries.");
+    parser.addOption(yesOption);
 
-    QCommandLineOption testOption(QStringList() << "t" << "test",
-                                  "Test archive integrity by extracting to temporary location");
-    parser.addOption(testOption);
+    parser.addPositionalArgument("command", "Command to execute: e, l, t, x");
+    parser.addPositionalArgument("archive", "Archive file to process");
 
-    QCommandLineOption testProgressOption(QStringList() << "test-progress",
-                                         "Test progress callback display");
-    parser.addOption(testProgressOption);
-
-    // Add positional argument for input file
-    parser.addPositionalArgument("file", "File to unpack");
-
-    // Process command line arguments
     parser.process(app);
 
-    // Check for test progress option first (doesn't need a file)
-    if (parser.isSet(testProgressOption)) {
-        testProgressCallback();
-        return 0;
-    }
-
     const QStringList listArgs = parser.positionalArguments();
-    if (listArgs.isEmpty()) {
-        printError("No input file specified");
+    if (listArgs.size() < 2) {
+        printError(QString("Usage: %1 <command> <archive> [switches]").arg(Global::NAME));
         parser.showHelp(1);
         return 1;
     }
 
-    QString sInputFile = listArgs.first();
+    const QString sCommand = listArgs.at(0);
+    const QString sInputFile = listArgs.at(1);
+
+    const QStringList validCommands = {"e", "l", "t", "x"};
+    if (!validCommands.contains(sCommand)) {
+        printError(QString("Unknown command: %1").arg(sCommand));
+        parser.showHelp(1);
+        return 1;
+    }
+
     QFileInfo fileInfo(sInputFile);
 
     if (!fileInfo.exists()) {
@@ -179,15 +153,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    bool bListOnly = parser.isSet(listOption);
-    bool bTest = parser.isSet(testOption);
-    bool bExtract = parser.isSet(extractOption);
     QString sOutputDir = parser.value(outputOption);
-
-    // Default action is extract if no action specified
-    if (!bListOnly && !bTest && !bExtract) {
-        bExtract = true;
-    }
 
     printInfo(QString("Processing file: %1").arg(fileInfo.absoluteFilePath()));
     printInfo(QString("File size: %1 bytes").arg(fileInfo.size()));
@@ -233,10 +199,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (bListOnly) {
+    if (sCommand == "l") {
         XModel_ArchiveRecords model(pBinary->getAvailableFPARTProperties(), &listRecords);
         XOptions::printModel(&model);
-    } else if (bTest) {
+    } else if (sCommand == "t") {
         printInfo("Testing archive integrity...");
 
         QString sTempDir = QDir::tempPath() + QDir::separator() + "xfileunpacker_test_" + QString::number(QDateTime::currentMSecsSinceEpoch());
@@ -264,17 +230,19 @@ int main(int argc, char *argv[])
             file.close();
             return 1;
         }
-    } else if (bExtract) {
+    } else if (sCommand == "e" || sCommand == "x") {
         if (sOutputDir.isEmpty()) {
             sOutputDir = fileInfo.absolutePath();
         }
 
-        printInfo(QString("Extracting to: %1").arg(sOutputDir));
+        // 'e' extracts flat (no subdirectory per archive), 'x' preserves full paths
+        QString sExtractPath = (sCommand == "x")
+                               ? sOutputDir + QDir::separator() + fileInfo.completeBaseName()
+                               : sOutputDir;
 
-        QString sExtractPath = sOutputDir + QDir::separator() + fileInfo.completeBaseName();
         QDir().mkpath(sExtractPath);
 
-        printInfo(QString("Unpacking archive..."));
+        printInfo(QString("Extracting to: %1").arg(sExtractPath));
 
         XFormats xformats;
         bool bUnpackResult = xformats.unpackDeviceToFolder(fileType, &file, sExtractPath, &pdStruct);
