@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=@PROJECT_VERSION@
+Type=Application
+Name=XFileUnpacker
+Comment=File unpacker utility
+TryExec=xfileunpacker
+Exec=xfileunpacker
+Icon=xfileunpacker
+Terminal=false
+Categories=Utility;Archiving;
