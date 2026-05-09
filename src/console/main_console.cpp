@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 #endif
 
     XScanEngine scanEngine;
-    XScanEngineConsole scanEngineConsole(&application, &scanEngine, buildDescription());
+    XScanEngineConsole scanEngineConsole(application, scanEngine, buildDescription());
 
     return scanEngineConsole.process();
 }
