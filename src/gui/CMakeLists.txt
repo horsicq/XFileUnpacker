@@ -58,14 +58,16 @@ set_target_properties(XFileUnpacker PROPERTIES
 target_include_directories(XFileUnpacker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(XFileUnpacker PRIVATE
-    bzip2
-    lzma
-    zlib
-    ppmd
     xsimd
+    capstone
+    cppfilt
+    yara
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network
+    Qt${XFILEUNPACKER_QT_MAJOR}::PrintSupport
+    Qt${XFILEUNPACKER_QT_MAJOR}::Svg
+    ${XFILEUNPACKER_SCRIPT_LIBS}
     Threads::Threads
 )
 
