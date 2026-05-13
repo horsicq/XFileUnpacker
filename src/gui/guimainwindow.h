@@ -22,7 +22,6 @@
 #define GUIMAINWINDOW_H
 
 #include <QDragEnterEvent>
-#include <QFile>
 #include <QFileDialog>
 #include <QMainWindow>
 #include <QMenu>
@@ -30,8 +29,6 @@
 
 #include "../global.h"
 #include "dialogabout.h"
-#include "xformats.h"
-#include "xgenericarchivewidget.h"
 #include "xoptions.h"
 
 namespace Ui {
@@ -47,10 +44,10 @@ public:
 
 private slots:
     void openFile(const QString &sFileName);
-    void on_pushButtonOpen_clicked();
-    void on_pushButtonAbout_clicked();
-    void on_pushButtonExit_clicked();
-    void on_toolButtonRecentFiles_clicked();
+    void onDirectoryActivated(const QString &sDirectoryName);
+    void on_actionOpen_triggered();
+    void on_actionAbout_triggered();
+    void on_actionExit_triggered();
     void adjustView();
 
 protected:
@@ -59,10 +56,11 @@ protected:
     void dropEvent(QDropEvent *pEvent) override;
 
 private:
+    void updateRecentFilesMenu();
+
     Ui::GuiMainWindow *ui;
     XOptions g_xOptions;
     QMenu *g_pRecentFilesMenu;
-    QFile *g_pFile;
 };
 
 #endif  // GUIMAINWINDOW_H

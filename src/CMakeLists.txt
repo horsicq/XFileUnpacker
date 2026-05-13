@@ -101,8 +101,6 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/XCapstone/x86" XCapstone_86)
 
 option(BUILD_GUI "Build the GUI application" ON)
 if(BUILD_GUI)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/XCppfilt" XCppfilt)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/XYara/3rdparty/yara" yara)
     add_subdirectory(gui)
 endif()
 add_subdirectory(console)

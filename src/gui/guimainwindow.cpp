@@ -22,7 +22,9 @@
 
 #include "ui_guimainwindow.h"
 
-GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui::GuiMainWindow), g_pFile(nullptr)
+#include <QFileInfo>
+
+GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui::GuiMainWindow), g_pRecentFilesMenu(nullptr)
 {
     ui->setupUi(this);
 
@@ -35,15 +37,25 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
     g_xOptions.addID(XOptions::ID_VIEW_LANG, QStringLiteral("System"));
     g_xOptions.addID(XOptions::ID_VIEW_QSS, QStringLiteral(""));
     g_xOptions.addID(XOptions::ID_VIEW_FONT_CONTROLS, XOptions::getDefaultFont().toString());
+    g_xOptions.addID(XOptions::ID_VIEW_FONT_TREEVIEWS, XOptions::getDefaultFont().toString());
     g_xOptions.addID(XOptions::ID_VIEW_FONT_TABLEVIEWS, XOptions::getMonoFont().toString());
     g_xOptions.addID(XOptions::ID_FILE_SAVELASTDIRECTORY, true);
     g_xOptions.addID(XOptions::ID_FILE_SAVERECENTFILES, true);
     g_xOptions.load();
 
     connect(&g_xOptions, SIGNAL(openFile(QString)), this, SLOT(openFile(QString)));
+    connect(ui->centralwidget, SIGNAL(fileActivated(QString)), this, SLOT(openFile(QString)));
+    connect(ui->centralwidget, SIGNAL(directoryActivated(QString)), this, SLOT(onDirectoryActivated(QString)));
 
     g_pRecentFilesMenu = g_xOptions.createRecentFilesMenu(this);
-    ui->toolButtonRecentFiles->setEnabled(g_xOptions.getRecentFiles().count());
+    ui->menuFile->insertMenu(ui->actionExit, g_pRecentFilesMenu);
+    ui->menuFile->insertSeparator(ui->actionExit);
+    updateRecentFilesMenu();
+
+    QString sLastDirectory = g_xOptions.getLastDirectory();
+    if (!sLastDirectory.isEmpty()) {
+        ui->centralwidget->setRootPath(sLastDirectory);
+    }
 
     adjustView();
 
@@ -56,47 +68,47 @@ GuiMainWindow::~GuiMainWindow()
 {
     g_xOptions.save();
 
-    if (g_pFile) {
-        g_pFile->close();
-        delete g_pFile;
-    }
-
     delete ui;
 }
 
 void GuiMainWindow::openFile(const QString &sFileName)
 {
     QFileInfo fi(sFileName);
+
+    if (!fi.exists()) {
+        return;
+    }
+
+    if (fi.isDir()) {
+        onDirectoryActivated(fi.absoluteFilePath());
+        return;
+    }
+
     if (!fi.isFile()) {
         return;
     }
 
-    if (g_pFile) {
-        g_pFile->close();
-        delete g_pFile;
-        g_pFile = nullptr;
-    }
-
-    g_pFile = new QFile(sFileName);
-    if (!g_pFile->open(QIODevice::ReadOnly)) {
-        delete g_pFile;
-        g_pFile = nullptr;
-        return;
-    }
-
-    QSet<XBinary::FT> stFileTypes = XFormats::getFileTypes(g_pFile, true);
-    XBinary::FT fileType = XBinary::_getPrefFileType(&stFileTypes);
-
-    ui->widgetArchive->setData(fileType, g_pFile);
-
+    ui->centralwidget->setCurrentPath(fi.absoluteFilePath());
     setWindowTitle(XOptions::getTitle(X_APPLICATIONDISPLAYNAME, X_APPLICATIONVERSION) +
                    QStringLiteral(" - ") + fi.fileName());
 
-    g_xOptions.setLastFileName(sFileName);
-    ui->toolButtonRecentFiles->setEnabled(g_xOptions.getRecentFiles().count());
+    g_xOptions.setLastFileName(fi.absoluteFilePath());
+    updateRecentFilesMenu();
 }
 
-void GuiMainWindow::on_pushButtonOpen_clicked()
+void GuiMainWindow::onDirectoryActivated(const QString &sDirectoryName)
+{
+    QFileInfo fi(sDirectoryName);
+
+    if (fi.isDir()) {
+        ui->centralwidget->setRootPath(fi.absoluteFilePath());
+        g_xOptions.setLastDirectory(fi.absoluteFilePath());
+        setWindowTitle(XOptions::getTitle(X_APPLICATIONDISPLAYNAME, X_APPLICATIONVERSION) +
+                       QStringLiteral(" - ") + fi.fileName());
+    }
+}
+
+void GuiMainWindow::on_actionOpen_triggered()
 {
     QString sDirectory = g_xOptions.getLastDirectory();
     QString sFileName = QFileDialog::getOpenFileName(this, tr("Open file") + QStringLiteral("..."), sDirectory, tr("All files") + QStringLiteral(" (*)"));
@@ -106,21 +118,15 @@ void GuiMainWindow::on_pushButtonOpen_clicked()
     }
 }
 
-void GuiMainWindow::on_pushButtonAbout_clicked()
+void GuiMainWindow::on_actionAbout_triggered()
 {
     DialogAbout di(this);
     di.exec();
 }
 
-void GuiMainWindow::on_pushButtonExit_clicked()
+void GuiMainWindow::on_actionExit_triggered()
 {
     this->close();
-}
-
-void GuiMainWindow::on_toolButtonRecentFiles_clicked()
-{
-    g_pRecentFilesMenu->exec(QCursor::pos());
-    ui->toolButtonRecentFiles->setEnabled(g_xOptions.getRecentFiles().count());
 }
 
 void GuiMainWindow::adjustView()
@@ -130,7 +136,7 @@ void GuiMainWindow::adjustView()
     }
 
     g_xOptions.adjustWidget(this, XOptions::ID_VIEW_FONT_CONTROLS);
-    ui->widgetArchive->adjustView();
+    g_xOptions.adjustTreeView(ui->centralwidget->getTreeView());
 }
 
 void GuiMainWindow::dragEnterEvent(QDragEnterEvent *pEvent)
@@ -152,8 +158,14 @@ void GuiMainWindow::dropEvent(QDropEvent *pEvent)
 
         if (urlList.count()) {
             QString sFileName = urlList.at(0).toLocalFile();
-            sFileName = XBinary::convertFileName(sFileName);
             openFile(sFileName);
         }
+    }
+}
+
+void GuiMainWindow::updateRecentFilesMenu()
+{
+    if (g_pRecentFilesMenu) {
+        g_pRecentFilesMenu->setEnabled(g_xOptions.getRecentFiles().count());
     }
 }

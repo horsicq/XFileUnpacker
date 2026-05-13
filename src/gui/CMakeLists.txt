@@ -1,11 +1,6 @@
 include(../../dep/build_tools/cmake/cpp_standart_setup.cmake)
 
-add_definitions(-DUSE_DEX)
-add_definitions(-DUSE_PDF)
-add_definitions(-DUSE_ARCHIVE)
-add_definitions(-DUSE_XSIMD)
-
-include(${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/archive_widget.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/FormatWidgets/XFileExplorer/xfileexplorer.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 if(NOT DEFINED XOPTIONS_SOURCES)
     include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XOptions/xoptions.cmake)
@@ -19,7 +14,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 set(XFILEUNPACKER_GUI_SOURCES
-    ${ARCHIVE_WIDGET_SOURCES}
+    ${XFILEEXPLORER_SOURCES}
     ${XABOUTWIDGET_SOURCES}
     ${XOPTIONS_SOURCES}
     ${XSTYLES_SOURCES}
@@ -58,10 +53,6 @@ set_target_properties(XFileUnpacker PROPERTIES
 target_include_directories(XFileUnpacker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(XFileUnpacker PRIVATE
-    xsimd
-    capstone
-    cppfilt
-    yara
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network
