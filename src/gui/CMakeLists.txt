@@ -53,6 +53,7 @@ set_target_properties(XFileUnpacker PROPERTIES
 target_include_directories(XFileUnpacker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(XFileUnpacker PRIVATE
+    capstone
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network
