@@ -1,0 +1,161 @@
+name: Build XFileUnpacker
+
+on:
+  workflow_dispatch:
+  release:
+    types: [created]
+  schedule:
+    - cron: '0 0 * * MON'
+
+env:
+  SRC_PATH: ${{ github.workspace }}/src
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        path: ${{ env.SRC_PATH }}
+
+    - name: Install Qt (Ubuntu)
+      run: |
+        sudo apt-get update
+        sudo apt-get install cmake qtbase5-dev qtscript5-dev qttools5-dev qttools5-dev-tools libqt5svg5-dev qtchooser qt5-qmake build-essential -y
+
+    - name: Build
+      working-directory: ${{ env.SRC_PATH }}
+      run: |
+        set -euo pipefail
+        rm -rf tmp_build
+        mkdir tmp_build
+        cd tmp_build
+        cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/Qt5" ..
+        cmake --build . --config MinSizeRel --parallel
+        test -x src/gui/xfileunpacker
+        cpack -G DEB
+        test -n "$(find packages -maxdepth 1 -name '*.deb' -print -quit)"
+
+    - name: Upload Release as Download
+      uses: softprops/action-gh-release@v2
+      env:
+        RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      with:
+        tag_name: Beta
+        draft: false
+        prerelease: true
+        files: |
+          ${{ env.SRC_PATH }}/tmp_build/packages/*.deb
+
+  build-windows-32:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: ${{ env.SRC_PATH }}
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win32_msvc2019'
+          dir: ${{ github.workspace }}
+          modules: qtscript
+
+      - name: Build
+        shell: cmd
+        working-directory: ${{ env.SRC_PATH }}
+        run: |
+          if exist tmp_build rmdir /s /q tmp_build
+          cmake -S . -B tmp_build -G "Visual Studio 17 2022" -A Win32 -DCMAKE_PREFIX_PATH="${{ github.workspace }}\Qt\5.15.2\msvc2019"
+          if errorlevel 1 exit /b 1
+          cmake --build tmp_build --config MinSizeRel --parallel
+          if errorlevel 1 exit /b 1
+          if not exist "tmp_build\src\gui\MinSizeRel\xfileunpacker.exe" (
+            echo Built executable not found
+            exit /b 1
+          )
+          cd tmp_build
+          cpack -G ZIP -C MinSizeRel
+          if errorlevel 1 exit /b 1
+          dir packages\*.zip >nul 2>nul
+          if errorlevel 1 (
+            echo ZIP package was not produced
+            exit /b 1
+          )
+
+      - name: Upload Release as Download
+        uses: softprops/action-gh-release@v2
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          tag_name: Beta
+          draft: false
+          prerelease: true
+          files: |
+            ${{ env.SRC_PATH }}/tmp_build/packages/*.zip
+
+  build-windows-64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: ${{ env.SRC_PATH }}
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          dir: ${{ github.workspace }}
+          modules: qtscript
+
+      - name: Build
+        shell: cmd
+        working-directory: ${{ env.SRC_PATH }}
+        run: |
+          if exist tmp_build rmdir /s /q tmp_build
+          cmake -S . -B tmp_build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${{ github.workspace }}\Qt\5.15.2\msvc2019_64"
+          if errorlevel 1 exit /b 1
+          cmake --build tmp_build --config MinSizeRel --parallel
+          if errorlevel 1 exit /b 1
+          if not exist "tmp_build\src\gui\MinSizeRel\xfileunpacker.exe" (
+            echo Built executable not found
+            exit /b 1
+          )
+          cd tmp_build
+          cpack -G ZIP -C MinSizeRel
+          if errorlevel 1 exit /b 1
+          dir packages\*.zip >nul 2>nul
+          if errorlevel 1 (
+            echo ZIP package was not produced
+            exit /b 1
+          )
+
+      - name: Upload Release as Download
+        uses: softprops/action-gh-release@v2
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          tag_name: Beta
+          draft: false
+          prerelease: true
+          files: |
+            ${{ env.SRC_PATH }}/tmp_build/packages/*.zip
