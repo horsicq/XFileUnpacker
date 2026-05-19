@@ -30,6 +30,7 @@
 #include "../global.h"
 #include "dialogabout.h"
 #include "xoptions.h"
+#include "xshortcuts.h"
 
 namespace Ui {
 class GuiMainWindow;
@@ -60,6 +61,7 @@ private:
 
     Ui::GuiMainWindow *ui;
     XOptions g_xOptions;
+    XShortcuts g_xShortcuts;
     QMenu *g_pRecentFilesMenu;
 };
 

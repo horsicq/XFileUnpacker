@@ -37,11 +37,14 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
     g_xOptions.addID(XOptions::ID_VIEW_LANG, QStringLiteral("System"));
     g_xOptions.addID(XOptions::ID_VIEW_QSS, QStringLiteral(""));
     g_xOptions.addID(XOptions::ID_VIEW_FONT_CONTROLS, XOptions::getDefaultFont().toString());
-    g_xOptions.addID(XOptions::ID_VIEW_FONT_TREEVIEWS, XOptions::getDefaultFont().toString());
+    g_xOptions.addID(XOptions::ID_VIEW_FONT_TREEVIEWS, XOptions::getMonoFont().toString());
     g_xOptions.addID(XOptions::ID_VIEW_FONT_TABLEVIEWS, XOptions::getMonoFont().toString());
+    g_xOptions.addID(XOptions::ID_VIEW_COLUMNS, QStringLiteral("0 | 1 | 2"));
     g_xOptions.addID(XOptions::ID_FILE_SAVELASTDIRECTORY, true);
     g_xOptions.addID(XOptions::ID_FILE_SAVERECENTFILES, true);
     g_xOptions.load();
+
+    ui->centralwidget->setGlobal(&g_xShortcuts, &g_xOptions);
 
     connect(&g_xOptions, SIGNAL(openFile(QString)), this, SLOT(openFile(QString)));
     connect(ui->centralwidget, SIGNAL(fileActivated(QString)), this, SLOT(openFile(QString)));
@@ -136,7 +139,8 @@ void GuiMainWindow::adjustView()
     }
 
     g_xOptions.adjustWidget(this, XOptions::ID_VIEW_FONT_CONTROLS);
-    g_xOptions.adjustTreeView(ui->centralwidget->getTreeView());
+
+    ui->centralwidget->adjustView();
 }
 
 void GuiMainWindow::dragEnterEvent(QDragEnterEvent *pEvent)

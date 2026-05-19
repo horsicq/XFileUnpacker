@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>XFileUnpacker</string>
   </property>
-  <widget class="XFileExplorer" name="centralwidget" native="true"/>
+  <widget class="XFileExplorerWidget" name="centralwidget" native="true"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
@@ -59,9 +59,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>XFileExplorer</class>
+   <class>XFileExplorerWidget</class>
    <extends>QWidget</extends>
-   <header>xfileexplorer.h</header>
+   <header>xfileexplorerwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -1,6 +1,6 @@
 include(../../dep/build_tools/cmake/cpp_standart_setup.cmake)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../dep/FormatWidgets/XFileExplorer/xfileexplorer.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/FormatWidgets/XFileExplorerWidget/xfileexplorerwidget.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 if(NOT DEFINED XOPTIONS_SOURCES)
     include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XOptions/xoptions.cmake)
@@ -14,7 +14,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 set(XFILEUNPACKER_GUI_SOURCES
-    ${XFILEEXPLORER_SOURCES}
+    ${XFILEEXPLORERWIDGET_SOURCES}
     ${XABOUTWIDGET_SOURCES}
     ${XOPTIONS_SOURCES}
     ${XSTYLES_SOURCES}
