@@ -20,6 +20,7 @@
  */
 #include "guimainwindow.h"
 
+#include "dialogoptions.h"
 #include "ui_guimainwindow.h"
 
 #include <QFileInfo>
@@ -42,6 +43,9 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
     g_xOptions.addID(XOptions::ID_VIEW_COLUMNS, QStringLiteral("0 | 1 | 2"));
     g_xOptions.addID(XOptions::ID_FILE_SAVELASTDIRECTORY, true);
     g_xOptions.addID(XOptions::ID_FILE_SAVERECENTFILES, true);
+    g_xOptions.addID(XOptions::ID_SCAN_ENGINE_DIE_ENABLED, true);
+    g_xOptions.addID(XOptions::ID_SCAN_ENGINE_NFD_ENABLED, true);
+    XScanEngineOptionsWidget::setDefaultValues(&g_xOptions);
     g_xOptions.load();
 
     ui->centralwidget->setGlobal(&g_xShortcuts, &g_xOptions);
@@ -125,6 +129,16 @@ void GuiMainWindow::on_actionAbout_triggered()
 {
     DialogAbout di(this);
     di.exec();
+}
+
+void GuiMainWindow::on_actionOptions_triggered()
+{
+    DialogOptions dialogOptions(this, &g_xOptions, XOptions::GROUPID_SCAN);
+    dialogOptions.setGlobal(&g_xShortcuts, &g_xOptions);
+
+    dialogOptions.exec();
+
+    adjustView();
 }
 
 void GuiMainWindow::on_actionExit_triggered()

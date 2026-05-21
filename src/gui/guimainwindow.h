@@ -47,6 +47,7 @@ private slots:
     void openFile(const QString &sFileName);
     void onDirectoryActivated(const QString &sDirectoryName);
     void on_actionOpen_triggered();
+    void on_actionOptions_triggered();
     void on_actionAbout_triggered();
     void on_actionExit_triggered();
     void adjustView();

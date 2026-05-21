@@ -5,7 +5,11 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 if(NOT DEFINED XOPTIONS_SOURCES)
     include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XOptions/xoptions.cmake)
 endif()
+if(NOT DEFINED XOPTIONSWIDGET_SOURCES)
+    include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XOptions/xoptionswidget.cmake)
+endif()
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XStyles/xstyles.cmake)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine)
 
 find_package(Threads REQUIRED)
 
@@ -17,14 +21,21 @@ set(XFILEUNPACKER_GUI_SOURCES
     ${XFILEEXPLORERWIDGET_SOURCES}
     ${XABOUTWIDGET_SOURCES}
     ${XOPTIONS_SOURCES}
+    ${XOPTIONSWIDGET_SOURCES}
     ${XSTYLES_SOURCES}
     dialogabout.cpp
     dialogabout.h
     dialogabout.ui
+    dialogoptions.cpp
+    dialogoptions.h
+    dialogoptions.ui
     guimainwindow.cpp
     guimainwindow.h
     guimainwindow.ui
     main_gui.cpp
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine/xscanengineoptionswidget.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine/xscanengineoptionswidget.h"
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine/xscanengineoptionswidget.ui"
     "${CMAKE_CURRENT_LIST_DIR}/../../res/resources_gui.qrc"
 )
 
