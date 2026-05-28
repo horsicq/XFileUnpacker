@@ -41,6 +41,7 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
     g_xOptions.addID(XOptions::ID_VIEW_FONT_TREEVIEWS, XOptions::getMonoFont().toString());
     g_xOptions.addID(XOptions::ID_VIEW_FONT_TABLEVIEWS, XOptions::getMonoFont().toString());
     g_xOptions.addID(XOptions::ID_VIEW_COLUMNS, QStringLiteral("0 | 1 | 2"));
+    g_xOptions.addID(XOptions::ID_VIEW_COLUMN_SIZES, QStringLiteral(""));
     g_xOptions.addID(XOptions::ID_FILE_SAVELASTDIRECTORY, true);
     g_xOptions.addID(XOptions::ID_FILE_SAVERECENTFILES, true);
     g_xOptions.addID(XOptions::ID_SCAN_ENGINE_DIE_ENABLED, true);
