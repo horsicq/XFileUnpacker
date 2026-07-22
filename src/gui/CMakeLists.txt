@@ -1,5 +1,7 @@
 include(../../dep/build_tools/cmake/cpp_standart_setup.cmake)
 
+add_definitions(-DUSE_XSIMD)
+
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/FormatWidgets/XFileExplorerWidget/xfileexplorerwidget.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 if(NOT DEFINED XOPTIONS_SOURCES)
@@ -64,7 +66,12 @@ set_target_properties(XFileUnpacker PROPERTIES
 target_include_directories(XFileUnpacker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(XFileUnpacker PRIVATE
+    xsimd
     capstone
+    bzip2
+    lzma
+    zlib
+    ppmd
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network

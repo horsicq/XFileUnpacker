@@ -98,6 +98,7 @@ endif()
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/Formats/xsimd" XSIMD)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/XCapstone" XCapstone)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/XCapstone/x86" XCapstone_86)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../dep/XArchive" XArchive)
 
 option(BUILD_GUI "Build the GUI application" ON)
 if(BUILD_GUI)

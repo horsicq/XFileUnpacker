@@ -14,6 +14,8 @@ endif()
 
 if(MSVC)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
+    add_compile_options(/FS)
+    add_compile_options($<$<CONFIG:Debug>:/Z7> $<$<CONFIG:RelWithDebInfo>:/Z7>)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine/xscanengineconsole.cmake)
@@ -35,6 +37,10 @@ target_include_directories(xfileunpackerc PRIVATE
 target_link_libraries(xfileunpackerc PRIVATE
     xsimd
     capstone_x86
+    bzip2
+    lzma
+    zlib
+    ppmd
     Qt${XFILEUNPACKER_QT_MAJOR}::Core
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
 )
