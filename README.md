@@ -75,7 +75,7 @@ XFileUnpacker/
 
 ## License
 
-MIT License - See LICENSE.txt for details
+MIT License - See [here](LICENSE) for details
 
 ## Contributing
 
