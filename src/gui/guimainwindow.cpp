@@ -20,10 +20,18 @@
  */
 #include "guimainwindow.h"
 
+#include "dialogarchivecontents.h"
 #include "dialogoptions.h"
+#include "dialogunpackfile.h"
+#include "dialogxfileinfo.h"
 #include "ui_guimainwindow.h"
+#include "xformats.h"
 
+#include <QDir>
 #include <QFileInfo>
+#include <QMessageBox>
+#include <QStyle>
+#include <QTemporaryDir>
 
 GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui::GuiMainWindow), g_pRecentFilesMenu(nullptr)
 {
@@ -40,7 +48,7 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
     g_xOptions.addID(XOptions::ID_VIEW_FONT_CONTROLS, XOptions::getDefaultFont().toString());
     g_xOptions.addID(XOptions::ID_VIEW_FONT_TREEVIEWS, XOptions::getMonoFont().toString());
     g_xOptions.addID(XOptions::ID_VIEW_FONT_TABLEVIEWS, XOptions::getMonoFont().toString());
-    g_xOptions.addID(XOptions::ID_VIEW_COLUMNS, QStringLiteral("0 | 1 | 2"));
+    g_xOptions.addID(XOptions::ID_VIEW_COLUMNS, QStringLiteral("0 | 9 | 1 | 2"));
     g_xOptions.addID(XOptions::ID_VIEW_COLUMN_SIZES, QStringLiteral(""));
     g_xOptions.addID(XOptions::ID_FILE_SAVELASTDIRECTORY, true);
     g_xOptions.addID(XOptions::ID_FILE_SAVERECENTFILES, true);
@@ -51,9 +59,24 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
 
     ui->centralwidget->setGlobal(&g_xShortcuts, &g_xOptions);
 
+    ui->actionOpen->setIcon(style()->standardIcon(QStyle::SP_DirOpenIcon));
+    ui->actionExtract->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    ui->actionTest->setIcon(style()->standardIcon(QStyle::SP_DialogApplyButton));
+    ui->actionInfo->setIcon(style()->standardIcon(QStyle::SP_MessageBoxInformation));
+    ui->actionRefresh->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
+    ui->actionOptions->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
+
+    g_pLabelObjects = new QLabel(this);
+    g_pLabelCurrentFile = new QLabel(this);
+    ui->statusbar->addWidget(g_pLabelObjects);
+    ui->statusbar->addPermanentWidget(g_pLabelCurrentFile);
+
     connect(&g_xOptions, SIGNAL(openFile(QString)), this, SLOT(openFile(QString)));
     connect(ui->centralwidget, SIGNAL(fileActivated(QString)), this, SLOT(openFile(QString)));
     connect(ui->centralwidget, SIGNAL(directoryActivated(QString)), this, SLOT(onDirectoryActivated(QString)));
+    connect(ui->centralwidget, SIGNAL(archiveActivated(QString)), this, SLOT(onArchiveActivated(QString)));
+    connect(ui->centralwidget, SIGNAL(currentPathChanged(QString)), this, SLOT(onCurrentPathChanged(QString)));
+    connect(ui->centralwidget->getModel(), SIGNAL(modelReset()), this, SLOT(onModelReset()));
 
     g_pRecentFilesMenu = g_xOptions.createRecentFilesMenu(this);
     ui->menuFile->insertMenu(ui->actionExit, g_pRecentFilesMenu);
@@ -66,6 +89,8 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent) : QMainWindow(pParent), ui(new Ui
     }
 
     adjustView();
+    updateActions();
+    updateStatusBar();
 
     if (QCoreApplication::arguments().count() > 1) {
         openFile(QCoreApplication::arguments().at(1));
@@ -102,6 +127,10 @@ void GuiMainWindow::openFile(const QString &sFileName)
 
     g_xOptions.setLastFileName(fi.absoluteFilePath());
     updateRecentFilesMenu();
+
+    if (XFormats::isArchive(fi.absoluteFilePath())) {
+        onArchiveActivated(fi.absoluteFilePath());
+    }
 }
 
 void GuiMainWindow::onDirectoryActivated(const QString &sDirectoryName)
@@ -116,6 +145,35 @@ void GuiMainWindow::onDirectoryActivated(const QString &sDirectoryName)
     }
 }
 
+void GuiMainWindow::onArchiveActivated(const QString &sFileName)
+{
+    DialogArchiveContents dialogArchiveContents(this);
+    dialogArchiveContents.setGlobal(&g_xShortcuts, &g_xOptions);
+
+    if (dialogArchiveContents.setFileName(sFileName)) {
+        g_xOptions.setLastFileName(sFileName);
+        updateRecentFilesMenu();
+
+        dialogArchiveContents.exec();
+    } else {
+        QMessageBox::critical(this, tr("Error"), tr("Cannot open file") + QStringLiteral(": ") + QDir::toNativeSeparators(sFileName));
+    }
+}
+
+void GuiMainWindow::onCurrentPathChanged(const QString &sPath)
+{
+    Q_UNUSED(sPath)
+
+    updateActions();
+    updateStatusBar();
+}
+
+void GuiMainWindow::onModelReset()
+{
+    updateActions();
+    updateStatusBar();
+}
+
 void GuiMainWindow::on_actionOpen_triggered()
 {
     QString sDirectory = g_xOptions.getLastDirectory();
@@ -124,6 +182,76 @@ void GuiMainWindow::on_actionOpen_triggered()
     if (!sFileName.isEmpty()) {
         openFile(sFileName);
     }
+}
+
+void GuiMainWindow::on_actionExtract_triggered()
+{
+    QString sFileName = getCurrentFileName();
+
+    if (sFileName.isEmpty() || (!XFormats::isArchive(sFileName))) {
+        return;
+    }
+
+    QString sResultFolder = QFileDialog::getExistingDirectory(this, tr("Extract to directory"), QFileInfo(sFileName).absolutePath());
+
+    if (sResultFolder.isEmpty()) {
+        return;
+    }
+
+    if (extractArchive(sFileName, sResultFolder)) {
+        QMessageBox::information(this, tr("Extract"), tr("Extracted to %1").arg(QDir::toNativeSeparators(sResultFolder)));
+    } else {
+        QMessageBox::critical(this, tr("Error"), tr("Cannot extract archive"));
+    }
+}
+
+void GuiMainWindow::on_actionTest_triggered()
+{
+    QString sFileName = getCurrentFileName();
+
+    if (sFileName.isEmpty() || (!XFormats::isArchive(sFileName))) {
+        return;
+    }
+
+    QTemporaryDir temporaryDir;
+
+    if (!temporaryDir.isValid()) {
+        QMessageBox::critical(this, tr("Error"), tr("Cannot create temporary directory"));
+        return;
+    }
+
+    if (extractArchive(sFileName, temporaryDir.path())) {
+        QMessageBox::information(this, tr("Test"), tr("There are no errors"));
+    } else {
+        QMessageBox::critical(this, tr("Error"), tr("Archive test failed"));
+    }
+}
+
+void GuiMainWindow::on_actionInfo_triggered()
+{
+    QString sFileName = getCurrentFileName();
+
+    if (sFileName.isEmpty()) {
+        return;
+    }
+
+    QFile file(sFileName);
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(this, tr("Error"), tr("Cannot open file") + QStringLiteral(": ") + QDir::toNativeSeparators(sFileName));
+        return;
+    }
+
+    DialogXFileInfo dialogXFileInfo(this);
+    dialogXFileInfo.setGlobal(&g_xShortcuts, &g_xOptions);
+    dialogXFileInfo.setData(&file, XFormats::getPrefFileType(&file, true), QStringLiteral("Info"), true);
+
+    dialogXFileInfo.exec();
+}
+
+void GuiMainWindow::on_actionRefresh_triggered()
+{
+    ui->centralwidget->reload();
 }
 
 void GuiMainWindow::on_actionAbout_triggered()
@@ -187,4 +315,66 @@ void GuiMainWindow::updateRecentFilesMenu()
     if (g_pRecentFilesMenu) {
         g_pRecentFilesMenu->setEnabled(g_xOptions.getRecentFiles().count());
     }
+}
+
+void GuiMainWindow::updateActions()
+{
+    QString sFileName = getCurrentFileName();
+    bool bIsFile = (!sFileName.isEmpty());
+    bool bIsArchive = false;
+
+    if (bIsFile) {
+        bIsArchive = XFormats::isArchive(sFileName);
+    }
+
+    ui->actionExtract->setEnabled(bIsArchive);
+    ui->actionTest->setEnabled(bIsArchive);
+    ui->actionInfo->setEnabled(bIsFile);
+}
+
+void GuiMainWindow::updateStatusBar()
+{
+    qint32 nNumberOfObjects = ui->centralwidget->getModel()->rowCount();
+
+    g_pLabelObjects->setText(QString("%1 %2").arg(QString::number(nNumberOfObjects), tr("object(s)")));
+
+    QString sInfo;
+    QString sCurrentPath = ui->centralwidget->getCurrentPath();
+
+    if (!sCurrentPath.isEmpty()) {
+        QFileInfo fi(sCurrentPath);
+
+        if (fi.isFile()) {
+            sInfo = QString("%1  %2").arg(fi.fileName(), XBinary::bytesCountToString(fi.size(), 1024));
+        } else if (fi.isDir()) {
+            sInfo = QDir::toNativeSeparators(fi.absoluteFilePath());
+        }
+    }
+
+    g_pLabelCurrentFile->setText(sInfo);
+}
+
+QString GuiMainWindow::getCurrentFileName() const
+{
+    QString sResult;
+    QString sCurrentPath = ui->centralwidget->getCurrentPath();
+
+    if (!sCurrentPath.isEmpty()) {
+        QFileInfo fi(sCurrentPath);
+
+        if (fi.isFile()) {
+            sResult = fi.absoluteFilePath();
+        }
+    }
+
+    return sResult;
+}
+
+bool GuiMainWindow::extractArchive(const QString &sFileName, const QString &sResultFolder)
+{
+    DialogUnpackFile dialogUnpackFile(this);
+    dialogUnpackFile.setData(sFileName, sResultFolder);
+    dialogUnpackFile.showDialogDelay();
+
+    return dialogUnpackFile.isSuccess();
 }

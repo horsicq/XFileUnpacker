@@ -3,6 +3,8 @@ include(../../dep/build_tools/cmake/cpp_standart_setup.cmake)
 add_definitions(-DUSE_XSIMD)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/FormatWidgets/XFileExplorerWidget/xfileexplorerwidget.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XFileInfo/xfileinfowidget.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/archiveexplorerwidget.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 if(NOT DEFINED XOPTIONS_SOURCES)
     include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XOptions/xoptions.cmake)
@@ -21,13 +23,22 @@ endif()
 
 set(XFILEUNPACKER_GUI_SOURCES
     ${XFILEEXPLORERWIDGET_SOURCES}
+    ${XFILEINFOWIDGET_SOURCES}
+    ${ARCHIVEEXPLORERWIDGET_SOURCES}
     ${XABOUTWIDGET_SOURCES}
     ${XOPTIONS_SOURCES}
     ${XOPTIONSWIDGET_SOURCES}
     ${XSTYLES_SOURCES}
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/dialogunpackfile.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/dialogunpackfile.h"
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/unpackfileprocess.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/unpackfileprocess.h"
     dialogabout.cpp
     dialogabout.h
     dialogabout.ui
+    dialogarchivecontents.cpp
+    dialogarchivecontents.h
+    dialogarchivecontents.ui
     dialogoptions.cpp
     dialogoptions.h
     dialogoptions.ui

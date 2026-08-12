@@ -23,6 +23,7 @@
 
 #include <QDragEnterEvent>
 #include <QFileDialog>
+#include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMimeData>
@@ -46,7 +47,14 @@ public:
 private slots:
     void openFile(const QString &sFileName);
     void onDirectoryActivated(const QString &sDirectoryName);
+    void onArchiveActivated(const QString &sFileName);
+    void onCurrentPathChanged(const QString &sPath);
+    void onModelReset();
     void on_actionOpen_triggered();
+    void on_actionExtract_triggered();
+    void on_actionTest_triggered();
+    void on_actionInfo_triggered();
+    void on_actionRefresh_triggered();
     void on_actionOptions_triggered();
     void on_actionAbout_triggered();
     void on_actionExit_triggered();
@@ -59,11 +67,17 @@ protected:
 
 private:
     void updateRecentFilesMenu();
+    void updateActions();
+    void updateStatusBar();
+    QString getCurrentFileName() const;
+    bool extractArchive(const QString &sFileName, const QString &sResultFolder);
 
     Ui::GuiMainWindow *ui;
     XOptions g_xOptions;
     XShortcuts g_xShortcuts;
     QMenu *g_pRecentFilesMenu;
+    QLabel *g_pLabelObjects;
+    QLabel *g_pLabelCurrentFile;
 };
 
 #endif  // GUIMAINWINDOW_H
