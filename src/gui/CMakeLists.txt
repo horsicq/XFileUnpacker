@@ -2,7 +2,9 @@ include(../../dep/build_tools/cmake/cpp_standart_setup.cmake)
 
 add_definitions(-DUSE_XSIMD)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../dep/FormatWidgets/XFileExplorerWidget/xfileexplorerwidget.cmake)
+if(NOT DEFINED XCOMBOBOXEX_SOURCES)
+    include(${CMAKE_CURRENT_LIST_DIR}/../../dep/Controls/xcomboboxex.cmake)
+endif()
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XFileInfo/xfileinfowidget.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/archiveexplorerwidget.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
@@ -22,7 +24,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 set(XFILEUNPACKER_GUI_SOURCES
-    ${XFILEEXPLORERWIDGET_SOURCES}
+    ${XCOMBOBOXEX_SOURCES}
     ${XFILEINFOWIDGET_SOURCES}
     ${ARCHIVEEXPLORERWIDGET_SOURCES}
     ${XABOUTWIDGET_SOURCES}

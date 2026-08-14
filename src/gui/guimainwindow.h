@@ -22,11 +22,14 @@
 #define GUIMAINWINDOW_H
 
 #include <QDragEnterEvent>
+#include <QFile>
 #include <QFileDialog>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMimeData>
+
+#include <memory>
 
 #include "../global.h"
 #include "dialogabout.h"
@@ -46,10 +49,8 @@ public:
 
 private slots:
     void openFile(const QString &sFileName);
-    void onDirectoryActivated(const QString &sDirectoryName);
-    void onArchiveActivated(const QString &sFileName);
-    void onCurrentPathChanged(const QString &sPath);
-    void onModelReset();
+    void onArchiveRecordsLoaded(qint32 nNumberOfRecords);
+    void onArchiveRecordChanged(const QString &sRecordFileName, qint64 nFileSize);
     void on_actionOpen_triggered();
     void on_actionExtract_triggered();
     void on_actionTest_triggered();
@@ -75,6 +76,10 @@ private:
     Ui::GuiMainWindow *ui;
     XOptions g_xOptions;
     XShortcuts g_xShortcuts;
+    std::unique_ptr<QFile> g_pArchiveFile;
+    QString g_sCurrentFileName;
+    QString g_sCurrentRecordFileName;
+    qint64 g_nCurrentRecordFileSize;
     QMenu *g_pRecentFilesMenu;
     QLabel *g_pLabelObjects;
     QLabel *g_pLabelCurrentFile;

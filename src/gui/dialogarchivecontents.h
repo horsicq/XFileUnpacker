@@ -41,8 +41,8 @@ public:
     bool setFileName(const QString &sFileName);
 
 private slots:
-    void on_pushButtonExtractAll_clicked();
-    void on_pushButtonTest_clicked();
+    void onExtractAllRequested();
+    void onTestRequested();
     void on_pushButtonClose_clicked();
 
 private:
