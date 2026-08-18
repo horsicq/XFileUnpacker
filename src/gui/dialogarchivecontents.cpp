@@ -27,7 +27,6 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QSet>
-#include <QTemporaryDir>
 
 #include "dialogunpackfile.h"
 #include "xformats.h"
@@ -35,9 +34,11 @@
 DialogArchiveContents::DialogArchiveContents(QWidget *pParent) : XShortcutsDialog(pParent, true), ui(new Ui::DialogArchiveContents), g_pXOptions(nullptr)
 {
     ui->setupUi(this);
+    g_fileType = XBinary::FT_UNKNOWN;
 
     connect(ui->widgetArchive, SIGNAL(extractAllRequested()), this, SLOT(onExtractAllRequested()));
     connect(ui->widgetArchive, SIGNAL(testRequested()), this, SLOT(onTestRequested()));
+    connect(ui->widgetArchive, SIGNAL(recordsLoaded(qint32)), this, SLOT(onArchiveRecordsLoaded(qint32)));
 }
 
 DialogArchiveContents::~DialogArchiveContents()
@@ -60,15 +61,24 @@ bool DialogArchiveContents::setFileName(const QString &sFileName)
         return false;
     }
 
-    XBinary::FT fileType = XFormats::getPrefFileType(&g_file, XBinary::FT_FLAG_ARCHIVES);
+    g_fileType = XFormats::getPrefFileType(&g_file, XBinary::FT_FLAG_ARCHIVES);
 
-    ui->widgetArchive->setData(fileType, &g_file);
+    ui->widgetArchive->setData(g_fileType, &g_file);
 
     setWindowTitle(QFileInfo(sFileName).fileName());
 
-    updateSummary(fileType);
+    updateSummary(g_fileType);
 
     return true;
+}
+
+void DialogArchiveContents::onArchiveRecordsLoaded(qint32 nNumberOfRecords)
+{
+    Q_UNUSED(nNumberOfRecords)
+
+    if (g_file.isOpen()) {
+        updateSummary(g_fileType);
+    }
 }
 
 void DialogArchiveContents::updateSummary(XBinary::FT fileType)
@@ -165,7 +175,12 @@ void DialogArchiveContents::onExtractAllRequested()
     }
 
     DialogUnpackFile dialogUnpackFile(this);
-    dialogUnpackFile.setData(g_sFileName, sResultFolder);
+    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
+    const QString sPassword = ui->widgetArchive->getPassword();
+    if (!sPassword.isEmpty()) {
+        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
+    }
+    dialogUnpackFile.setData(g_sFileName, sResultFolder, mapProperties);
     dialogUnpackFile.showDialogDelay();
 
     if (dialogUnpackFile.isSuccess()) {
@@ -177,15 +192,14 @@ void DialogArchiveContents::onExtractAllRequested()
 
 void DialogArchiveContents::onTestRequested()
 {
-    QTemporaryDir temporaryDir;
-
-    if (!temporaryDir.isValid()) {
-        QMessageBox::critical(this, tr("Error"), tr("Cannot create temporary directory"));
-        return;
+    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
+    const QString sPassword = ui->widgetArchive->getPassword();
+    if (!sPassword.isEmpty()) {
+        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
     }
 
     DialogUnpackFile dialogUnpackFile(this);
-    dialogUnpackFile.setData(g_sFileName, temporaryDir.path());
+    dialogUnpackFile.setDataTest(g_sFileName, mapProperties);
     dialogUnpackFile.showDialogDelay();
 
     if (dialogUnpackFile.isSuccess()) {

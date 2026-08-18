@@ -7,6 +7,12 @@ if(NOT DEFINED XCOMBOBOXEX_SOURCES)
 endif()
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XFileInfo/xfileinfowidget.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/archiveexplorerwidget.cmake)
+# Static unpackers (Inno Setup, NSIS, UPX, ...). Included after Formats/XArchive so its guards
+# skip re-adding those; defines USE_STATICUNPACKER, enabling the packer/installer branches in
+# XFormats::createClass / _getFileTypes.
+if(NOT DEFINED XSTATICUNPACKER_SOURCES)
+    include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XStaticUnpacker/xstaticunpacker.cmake)
+endif()
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 if(NOT DEFINED XOPTIONS_SOURCES)
     include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XOptions/xoptions.cmake)
@@ -27,6 +33,7 @@ set(XFILEUNPACKER_GUI_SOURCES
     ${XCOMBOBOXEX_SOURCES}
     ${XFILEINFOWIDGET_SOURCES}
     ${ARCHIVEEXPLORERWIDGET_SOURCES}
+    ${XSTATICUNPACKER_SOURCES}
     ${XABOUTWIDGET_SOURCES}
     ${XOPTIONS_SOURCES}
     ${XOPTIONSWIDGET_SOURCES}
@@ -69,6 +76,8 @@ add_executable(XFileUnpacker WIN32
     ${XFILEUNPACKER_GUI_SOURCES}
 )
 
+xfileunpacker_deploy_third_party_notices(XFileUnpacker)
+
 set_target_properties(XFileUnpacker PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE    TRUE
@@ -85,6 +94,7 @@ target_link_libraries(XFileUnpacker PRIVATE
     lzma
     zlib
     ppmd
+    xarchive_7zip
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network

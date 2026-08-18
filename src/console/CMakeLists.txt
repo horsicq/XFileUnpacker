@@ -20,14 +20,24 @@ endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine/xscanengineconsole.cmake)
 
+# Static unpackers (Inno Setup, NSIS, UPX, ...). Included after Formats/XArchive so its guards
+# skip re-adding those; defines USE_STATICUNPACKER, enabling the packer/installer branches in
+# XFormats::createClass / _getFileTypes.
+if(NOT DEFINED XSTATICUNPACKER_SOURCES)
+    include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XStaticUnpacker/xstaticunpacker.cmake)
+endif()
+
 if(UNIX AND NOT APPLE)
     include(GNUInstallDirs)
 endif()
 
 add_executable(xfileunpackerc
     ${XSCANENGINECONSOLE_SOURCES}
+    ${XSTATICUNPACKER_SOURCES}
     main_console.cpp
 )
+
+xfileunpacker_deploy_third_party_notices(xfileunpackerc)
 
 target_include_directories(xfileunpackerc PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -41,6 +51,7 @@ target_link_libraries(xfileunpackerc PRIVATE
     lzma
     zlib
     ppmd
+    xarchive_7zip
     Qt${XFILEUNPACKER_QT_MAJOR}::Core
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
 )

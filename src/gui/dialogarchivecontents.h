@@ -41,6 +41,7 @@ public:
     bool setFileName(const QString &sFileName);
 
 private slots:
+    void onArchiveRecordsLoaded(qint32 nNumberOfRecords);
     void onExtractAllRequested();
     void onTestRequested();
     void on_pushButtonClose_clicked();
@@ -52,6 +53,7 @@ private:
     XOptions *g_pXOptions;
     QFile g_file;
     QString g_sFileName;
+    XBinary::FT g_fileType;
 };
 
 #endif  // DIALOGARCHIVECONTENTS_H

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Unreleased
+----------
+- Integrated the complete 7-Zip 26.01 all-format extraction engine from
+  pinned upstream source; external 7z executables and DLLs are no longer used
+- Added encrypted-archive password input to the Archive Content widget and
+  secure password input from standard input in the console application
+- Added bounded, read-only archive-corpus smoke testing with JSON reporting
+- Added bundled third-party notices for the LGPL, BSD, and unRAR-licensed code
+
 Version 0.1.0 (2025-10-20)
 --------------------------
 - Initial project setup

@@ -6,8 +6,22 @@ A generic file unpacking utility with both Console (CLI) and Graphical User Inte
 
 - **Console Application**: Command-line interface for batch processing
 - **GUI Application**: User-friendly graphical interface
+- **Built-in 7-Zip engine**: 7-Zip 26.01 archive handlers and codecs are
+  compiled from source; no `7z.exe` or `7z.dll` is required at runtime
+- **Encrypted archives**: Password entry is available in the archive-content
+  view and passwords can be read securely from standard input by the CLI
+- **Native supplemental readers**: WARC, safe self-contained mtree, UU and
+  begin-base64 transport, AFIO CPIO, LZ4/TAR.LZ4, and nested compression
+  filters are handled in-process without linking or loading libarchive
 - **Qt5/Qt6 Support**: Automatically detects and uses available Qt version
 - **Cross-platform**: Works on Windows, macOS, and Linux
+
+## Supported formats
+
+See [doc/CURRENT.md](doc/CURRENT.md) for the current format support matrix —
+every archive, compressor, disk image and package format, with per-format
+detect / list / extract status, the codecs behind each one, and the known
+limitations.
 
 ## Version
 
@@ -75,7 +89,9 @@ XFileUnpacker/
 
 ## License
 
-MIT License - See [here](LICENSE) for details
+XFileUnpacker is MIT-licensed; see [LICENSE](LICENSE). The built-in 7-Zip
+engine and supplemental source-derived codecs have separate terms described in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Contributing
 

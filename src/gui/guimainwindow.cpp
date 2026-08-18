@@ -30,7 +30,6 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QStyle>
-#include <QTemporaryDir>
 
 GuiMainWindow::GuiMainWindow(QWidget *pParent)
     : QMainWindow(pParent), ui(new Ui::GuiMainWindow), g_nCurrentRecordFileSize(0), g_pRecentFilesMenu(nullptr)
@@ -52,6 +51,11 @@ GuiMainWindow::GuiMainWindow(QWidget *pParent)
     g_xOptions.addID(XOptions::ID_VIEW_COLUMN_SIZES, QStringLiteral(""));
     g_xOptions.addID(XOptions::ID_FILE_SAVELASTDIRECTORY, true);
     g_xOptions.addID(XOptions::ID_FILE_SAVERECENTFILES, true);
+#ifdef Q_OS_WIN
+    if (!g_xOptions.isNative()) {
+        g_xOptions.addID(XOptions::ID_FILE_CONTEXT, "*");
+    }
+#endif
     g_xOptions.addID(XOptions::ID_SCAN_ENGINE_DIE_ENABLED, true);
     g_xOptions.addID(XOptions::ID_SCAN_ENGINE_NFD_ENABLED, true);
     XScanEngineOptionsWidget::setDefaultValues(&g_xOptions);
@@ -113,7 +117,7 @@ void GuiMainWindow::openFile(const QString &sFileName)
         return;
     }
 
-    XBinary::FT fileType = XFormats::getPrefFileType(pArchiveFile.get(), XBinary::FT_FLAG_ARCHIVES);
+    XBinary::FT fileType = XFormats::getPrefFileType(pArchiveFile.get(), XBinary::FT_FLAG_FORMATS | XBinary::FT_FLAG_STATICUNPACKERS);
 
     g_pArchiveFile.swap(pArchiveFile);
     g_sCurrentFileName = fi.absoluteFilePath();
@@ -161,7 +165,7 @@ void GuiMainWindow::on_actionExtract_triggered()
 {
     QString sFileName = getCurrentFileName();
 
-    if (sFileName.isEmpty() || (!XFormats::isArchive(sFileName))) {
+    if (sFileName.isEmpty() || !ui->centralwidget->isArchiveAvailable()) {
         return;
     }
 
@@ -182,18 +186,21 @@ void GuiMainWindow::on_actionTest_triggered()
 {
     QString sFileName = getCurrentFileName();
 
-    if (sFileName.isEmpty() || (!XFormats::isArchive(sFileName))) {
+    if (sFileName.isEmpty() || !ui->centralwidget->isArchiveAvailable()) {
         return;
     }
 
-    QTemporaryDir temporaryDir;
-
-    if (!temporaryDir.isValid()) {
-        QMessageBox::critical(this, tr("Error"), tr("Cannot create temporary directory"));
-        return;
+    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
+    const QString sPassword = ui->centralwidget->getPassword();
+    if (!sPassword.isEmpty()) {
+        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
     }
 
-    if (extractArchive(sFileName, temporaryDir.path())) {
+    DialogUnpackFile dialogUnpackFile(this);
+    dialogUnpackFile.setDataTest(sFileName, mapProperties);
+    dialogUnpackFile.showDialogDelay();
+
+    if (dialogUnpackFile.isSuccess()) {
         QMessageBox::information(this, tr("Test"), tr("There are no errors"));
     } else {
         QMessageBox::critical(this, tr("Error"), tr("Archive test failed"));
@@ -295,11 +302,12 @@ void GuiMainWindow::updateRecentFilesMenu()
 
 void GuiMainWindow::updateActions()
 {
-    bool bIsArchive = g_pArchiveFile && g_pArchiveFile->isOpen() && !g_sCurrentFileName.isEmpty();
+    const bool bHasFile = g_pArchiveFile && g_pArchiveFile->isOpen() && !g_sCurrentFileName.isEmpty();
+    const bool bIsArchive = bHasFile && ui->centralwidget->isArchiveAvailable();
 
     ui->actionExtract->setEnabled(bIsArchive);
     ui->actionTest->setEnabled(bIsArchive);
-    ui->actionInfo->setEnabled(bIsArchive);
+    ui->actionInfo->setEnabled(bHasFile);
 }
 
 void GuiMainWindow::updateStatusBar()
@@ -336,8 +344,14 @@ QString GuiMainWindow::getCurrentFileName() const
 
 bool GuiMainWindow::extractArchive(const QString &sFileName, const QString &sResultFolder)
 {
+    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
+    const QString sPassword = ui->centralwidget->getPassword();
+    if (!sPassword.isEmpty()) {
+        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
+    }
+
     DialogUnpackFile dialogUnpackFile(this);
-    dialogUnpackFile.setData(sFileName, sResultFolder);
+    dialogUnpackFile.setData(sFileName, sResultFolder, mapProperties);
     dialogUnpackFile.showDialogDelay();
 
     return dialogUnpackFile.isSuccess();
