@@ -7,6 +7,9 @@ add_definitions(-DUSE_DEX)
 add_definitions(-DUSE_PDF)
 add_definitions(-DUSE_ARCHIVE)
 add_definitions(-DUSE_XSIMD)
+if(USE_DIE)
+    add_definitions(-DUSE_DIE)
+endif()
 
 if(WIN32)
     add_definitions(-DNOMINMAX)
@@ -36,8 +39,6 @@ add_executable(xfileunpackerc
     ${XSTATICUNPACKER_SOURCES}
     main_console.cpp
 )
-
-xfileunpacker_deploy_third_party_notices(xfileunpackerc)
 
 target_include_directories(xfileunpackerc PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}

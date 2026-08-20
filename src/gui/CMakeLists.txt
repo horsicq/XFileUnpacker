@@ -1,6 +1,12 @@
 include(../../dep/build_tools/cmake/cpp_standart_setup.cmake)
 
+add_definitions(-DUSE_DEX)
+add_definitions(-DUSE_PDF)
+add_definitions(-DUSE_ARCHIVE)
 add_definitions(-DUSE_XSIMD)
+if(USE_DIE)
+    add_definitions(-DUSE_DIE)
+endif()
 
 if(NOT DEFINED XCOMBOBOXEX_SOURCES)
     include(${CMAKE_CURRENT_LIST_DIR}/../../dep/Controls/xcomboboxex.cmake)
@@ -75,8 +81,6 @@ endif()
 add_executable(XFileUnpacker WIN32
     ${XFILEUNPACKER_GUI_SOURCES}
 )
-
-xfileunpacker_deploy_third_party_notices(XFileUnpacker)
 
 set_target_properties(XFileUnpacker PROPERTIES
     WIN32_EXECUTABLE TRUE
