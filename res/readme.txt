@@ -6,6 +6,9 @@ A generic file unpacking utility with both Console (CLI) and Graphical User Inte
 
 - **Console Application**: Command-line interface for batch processing
 - **GUI Application**: User-friendly graphical interface
+- **Encrypted archives**: The CLI accepts text, secure standard-input, or exact
+  legacy password bytes and can override the code page used by non-Unicode
+  Inno Setup data
 - **Qt5/Qt6 Support**: Automatically detects and uses available Qt version
 - **Cross-platform**: Works on Windows, macOS, and Linux
 
@@ -50,6 +53,16 @@ XFileUnpacker-GUI
 
 ```bash
 XFileUnpacker-CLI [options] <file>
+```
+
+Archive operations accept one of `--password`, `--password-stdin`, or
+`--password-hex`. For legacy non-Unicode Inno Setup installers,
+`--codepage NUMBER` selects the Windows code page used for filenames and
+text-password bytes:
+
+```bash
+xfileunpackerc --password legacy-password --extractarchive out setup.exe
+xfileunpackerc --password-hex efe0f0eeebfc --codepage 1251 --extractarchive out setup.exe
 ```
 
 ## Project Structure

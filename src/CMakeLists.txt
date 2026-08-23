@@ -31,6 +31,8 @@ set(X_DESCRIPTION    "XFileUnpacker is a file unpacker")
 set(X_HOMEPAGE       "http://ntinfo.biz")
 set(X_ORIGINAL_FILENAME "xfileunpacker")
 option(USE_DIE "Enable Detect It Easy integration" ON)
+option(WITH_XEMULATOR
+    "Enable the in-tree x86 emulator used by Install Simple extraction" ON)
 
 if(NOT DEFINED MACOSX_BUNDLE_GUI_IDENTIFIER OR "${MACOSX_BUNDLE_GUI_IDENTIFIER}" STREQUAL "")
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.ntinfo.xfileunpacker")
@@ -107,3 +109,10 @@ if(BUILD_GUI)
     add_subdirectory(gui)
 endif()
 add_subdirectory(console)
+
+option(XFILEUNPACKER_CONTENT_FINGERPRINT
+    "Detect source byte changes even when restored mtimes move backwards" ON)
+if(XFILEUNPACKER_CONTENT_FINGERPRINT)
+    include("${CMAKE_CURRENT_LIST_DIR}/../cmake/content_fingerprint.cmake")
+    xfu_enable_content_fingerprint("${CMAKE_CURRENT_LIST_DIR}/../..")
+endif()

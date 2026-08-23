@@ -9,10 +9,12 @@ A generic file unpacking utility with both Console (CLI) and Graphical User Inte
 - **Built-in 7-Zip engine**: 7-Zip 26.01 archive handlers and codecs are
   compiled from source; no `7z.exe` or `7z.dll` is required at runtime
 - **Encrypted archives**: Password entry is available in the archive-content
-  view and passwords can be read securely from standard input by the CLI
-- **Native supplemental readers**: WARC, safe self-contained mtree, UU and
-  begin-base64 transport, AFIO CPIO, LZ4/TAR.LZ4, and nested compression
-  filters are handled in-process without linking or loading libarchive
+  view; the CLI accepts text, secure standard-input, or exact legacy password
+  bytes and can override the code page used by non-Unicode Inno Setup data
+- **Native supplemental readers**: Quake PAK, Doom WAD, Build GRP, WARC,
+  safe self-contained mtree, UU and begin-base64 transport, AFIO CPIO,
+  LZ4/TAR.LZ4, and nested compression filters are handled in-process without
+  linking or loading libarchive
 - **Qt5/Qt6 Support**: Automatically detects and uses available Qt version
 - **Cross-platform**: Works on Windows, macOS, and Linux
 
@@ -64,6 +66,16 @@ XFileUnpacker-GUI
 
 ```bash
 XFileUnpacker-CLI [options] <file>
+```
+
+Archive operations accept one of `--password`, `--password-stdin`, or
+`--password-hex`. For legacy non-Unicode Inno Setup installers,
+`--codepage NUMBER` selects the Windows code page used for filenames and
+text-password bytes:
+
+```bash
+xfileunpackerc --password legacy-password --extractarchive out setup.exe
+xfileunpackerc --password-hex efe0f0eeebfc --codepage 1251 --extractarchive out setup.exe
 ```
 
 ## Project Structure

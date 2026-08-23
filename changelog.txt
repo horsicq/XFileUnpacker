@@ -3,10 +3,18 @@ Changelog
 
 Unreleased
 ----------
+- Added strict native list/extract support for Quake PAK, Doom IWAD/PWAD, and
+  Build GRP archives, including bounded directory parsing and safe names
 - Integrated the complete 7-Zip 26.01 all-format extraction engine from
   pinned upstream source; external 7z executables and DLLs are no longer used
 - Added encrypted-archive password input to the Archive Content widget and
   secure password input from standard input in the console application
+- Expanded Inno Setup support with exact 1.2.10 Win16, 1.3.25, 2.0.18,
+  3.0.5, 4.0.10/4.0.11, 4.1.8, and 4.2.6 setup-data schemas alongside the
+  modelled 5.x-7.0 layouts, including `idska16`/`base.N` and modern sibling
+  slices, plus generic NE-loader routing
+- Added Inno Setup ARC4-MD5, ARC4-SHA1, and PBKDF2-XChaCha20 extraction, plus
+  `--codepage` and `--password-hex` controls for ambiguous legacy ANSI data
 - Added bounded, read-only archive-corpus smoke testing with JSON reporting
 - Added bundled third-party notices for the LGPL, BSD, and unRAR-licensed code
 
