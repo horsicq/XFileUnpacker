@@ -29,16 +29,6 @@ endif()
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XStyles/xstyles.cmake)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine)
 
-# XYara is pulled in transitively (FormatWidgets -> xyara.cmake) and calls
-# libyara's yr_* API unconditionally, so the static yara library must be built
-# and linked or the GUI fails at link with unresolved yr_* externals. The
-# console target does not compile XYara, which is why only the GUI needs this.
-if(NOT TARGET yara)
-    add_subdirectory(
-        ${CMAKE_CURRENT_LIST_DIR}/../../dep/XYara/3rdparty/yara
-        ${CMAKE_CURRENT_BINARY_DIR}/yara_lib)
-endif()
-
 find_package(Threads REQUIRED)
 
 if(UNIX AND NOT APPLE)
@@ -109,12 +99,12 @@ target_link_libraries(XFileUnpacker PRIVATE
     zlib
     ppmd
     xarchive_7zip
-    yara
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network
     Qt${XFILEUNPACKER_QT_MAJOR}::PrintSupport
     Qt${XFILEUNPACKER_QT_MAJOR}::Svg
+    ${XFILEUNPACKER_COMPAT_LIBS}
     ${XFILEUNPACKER_SCRIPT_LIBS}
     Threads::Threads
 )

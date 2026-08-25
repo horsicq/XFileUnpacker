@@ -55,6 +55,7 @@ target_link_libraries(xfileunpackerc PRIVATE
     xarchive_7zip
     Qt${XFILEUNPACKER_QT_MAJOR}::Core
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
+    ${XFILEUNPACKER_COMPAT_LIBS}
 )
 
 if(WIN32)
