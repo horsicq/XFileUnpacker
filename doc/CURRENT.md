@@ -199,7 +199,7 @@ suffix.
 | Format | Extensions | Detect | List | Extract | Notes |
 |---|---|---|---|---|---|
 | ISO 9660 / CD data track | `.iso`, `.img`, `.bin`, `.raw`, `.cue` | Yes | Yes | Yes | Stored ISO/Joliet content. CUE sheets map `MODE1/2048`, `MODE1/2352`, `MODE2/2336`, and Form-1 `MODE2/2352` data tracks; direct 2048/2336/2352/2448-byte sector images are recognized structurally. Audio and Mode-2 Form-2 sectors are not exposed as archive files. |
-| UDF | `.udf`, `.iso`, `.img` | Yes | Yes | Yes | Stored content; detection, not the shared alias, decides the format. `XUDF` implements the full streaming unpack contract — operation guards on all four entry points, `bindUnpackSource` paired with `validateAndFinalizeUnpackSource`, the `ownsUnpackSource` gate ahead of the context delete, and `isUnpackSourceCurrent` on every record call. **Note a detection caveat**: both chains test ISO 9660 before UDF, and a UDF *bridge* disc carries an ISO `CD001` descriptor by definition, so a bridge disc is read through its ISO bridge and `XUDF::isValid` is never called. `tests/console_udf_regression.ps1` therefore derives a pure-UDF image at run time by zeroing only the two `CD001` magics, leaving every UDF structure authentic, and then requires the UDF route and the ISO route to extract byte-identical payloads from the same volume. |
+| UDF | `.udf`, `.iso`, `.img` | Yes | Yes | Yes | Stored content; detection, not the shared alias, decides the format. `XUDF` implements the full streaming unpack contract — operation guards on all four entry points, `bindUnpackSource` paired with `validateAndFinalizeUnpackSource`, the `ownsUnpackSource` gate ahead of the context delete, and `isUnpackSourceCurrent` on every record call. **Note a detection caveat**: both chains test ISO 9660 before UDF, and a UDF *bridge* disc carries an ISO `CD001` descriptor by definition, so a bridge disc is read through its ISO bridge and `XUDF::isValid` is never called. `tests/console_udf_regression.ps1` therefore derives a pure-UDF image at run time by zeroing only the two `CD001` magics, leaving every UDF structure authentic, and then requires the UDF route and the ISO route to extract byte-identical payloads from the same volume. `XUDF::unpackCurrent` now stages each file into a private buffer and publishes atomically (like `XASAR`) rather than streaming into the caller's device, so a mid-stream failure cannot leave partial output in a caller-owned device. On the bridge-disc caveat: `-F UDF` now overrides the ISO-before-UDF detection on **every** route — `-i`, `--listarchive` and `--extractarchive` — and reaches the UDF reader (the regression pins `--listarchive -F UDF` reporting `UDF: 3 file(s)` in Route 1b and `-i -F UDF` reporting `FileType: UDF` in Route 1c). Only the auto-detect precedence itself is deliberately unchanged (corpus-wide FP risk); forcing the type is the supported workaround. |
 | Apple Disk Image | `.dmg` | Yes | Yes | Yes | The filename route's ip7z handler includes Store, zlib, bzip2, ADC and LZFSE. Native `XDMG` remains Partial because it does not decode ADC/LZFSE; targeted fixtures for those two codecs are still needed. |
 | Raw disk / virtual-disk image | `.img`, `.simg`, `.lpimg`, `.vdi`, `.vhd`, `.vhdx`, `.avhdx`, `.vmdk`, `.qcow`, `.qcow2`, `.qcow2c` | Generic | Wired | Wired | No generic native image class. Several filesystems/containers are reachable only through the compiled filename-based handlers listed below. |
 
@@ -342,7 +342,7 @@ records; it is more specific than the source-only `Wired` label.
 | FSG | `PE32: FSG` | Yes | Partial | PE32 only. Stub generations 1.1, 1.2, 1.0/1.3, 1.31, 1.33 and 2.0 are handled; the production CLI reconstructs **12/12** current corpus executables, all valid restored PEs with the original OEP and a byte-identical code section against the pre-pack oracle. Pre-1.33 stubs use a 16-bit support-record list and entry-point immediates instead of the 1.33 32-bit table, and the original entry point is located through its `FE 0F`/`0F 84` anchor rather than a fixed constant. **FSG 1.1/1.2** wrap that same v100 loader in a fixed single-layer byte-decryptor with `EB 02 CD 20` anti-disassembly padding: the 0xF4-byte body at EP+0x80 is decrypted with a constant per-byte transform, the plaintext v100 opener is then required (so a wrong transform fails closed rather than yielding a wrong image), and the OEP is found by scanning the decrypted body for its unique `FE`-preceded `0F 84` (at stub+225, one byte later than v100's 224). All three local 1.1/1.2 samples restore their code section byte-identically to the oracle with the correct OEP; the `in_fpc` pair differs only in the stripped `.idata` import thunks, the same analysis-dump limitation as the other families. |
 | MEW | `PE32: MEW` | Yes | **Yes** | PE32 only. All 16/16 current corpus executables reconstruct as valid restored PEs with the original OEP and 64 entry-point bytes, across MEW 10, MEW 11 and MEW 11 SE 1.2, aPLib and LZMA blocks, and the single-block "special" LZMA form; the pinned fixture additionally has its whole code section byte-identical to the pre-pack input. Imports are not re-fixed, so the restored image is an analysis dump and does not execute. MEW 5 has no runnable corpus sample. |
 | NsPack | `PE32: NsPack` | Yes | **Yes** | PE32 only. All 34 current corpus executables route and list a reconstructed record through the production CLI. **Imports are reconstructed**, which makes NsPack the only one of the five analysis-dump families whose output can execute. `_reconstructImports` had been dead on every sample: it read a descriptor pointer from `[loaderFileOffset - 0x20f]`, an offset that does not exist in the format and which — being a file offset while its sibling field was an RVA — landed inside the PE headers. The real anchors are the loader's parameter block at the start of the loader's own section (`+0x08` descriptor RVA for 3.1–3.7, `+0x04` for 1.4, disambiguated by which field equals the loader RVA, so no version sniffing is needed) and the stub's own import-name pool, based at the packed file's first `IMAGE_IMPORT_DESCRIPTOR::Name`. DLL names are not in the decompressed blob at all. All 34 samples now reconstruct an import table matching the pre-pack oracle exactly — same DLLs (case-insensitively; 3.x uppercases them), same function names, same IAT slot RVAs — verified by two independently written comparators. The call/jmp de-filter was also repaired (it had rewritten every E8/E9 site; the packer filtered only marker-matching sites up to a stored count, and stored a 24-bit big-endian target, not 32-bit), and `_buildPE` now restores the data directories NsPack drops — the TLS directory (`DataDirectory[9]`), whose absence crashed every TLS-using program (Borland's `in_bcb`), and the resource directory. With all three fixes **34 of 34 restored outputs execute and exit `0x12345678`** (up from 0), and all 34 are byte-exact to the oracle across every executable section. The TLS RVA is recovered by content-matching the first 12 bytes of NsPack's own relocated TLS-directory copy into the decompressed blob (derived per sample, not hardcoded), and every directory write is fail-closed — a non-TLS image gains no bogus directory and stays byte-identical. Import-by-ordinal is confirmed by disassembly only — no corpus oracle contains an ordinal import — and NsPack 2.x and x64 have no sample, so all fail closed rather than being claimed. |
-| Petite | `PE32: Petite` | Yes | **Yes** | PE32 only. Both current corpus executables route and list a reconstructed record through the production CLI. One output is a valid restored PE with the original OEP, 64 entry-point bytes and a byte-identical code section. Imports are not re-fixed, so the restored image is an analysis dump and does not execute. |
+| Petite | `PE32: Petite` | Yes | **Yes** | PE32 only. Both current corpus executables route and list a reconstructed record through the production CLI. One output is a valid restored PE with the original OEP, 64 entry-point bytes and a byte-identical code section. Imports are not re-fixed, so the restored image is an analysis dump and does not execute. When OEP recovery fails, the rebuild falls back to the first section's RVA **and now flags it** in the record's Info field (`[OEP recovery failed; entry point may be incorrect]`) instead of emitting a silently wrong entry point (XFU-038). The emitted entry point is deliberately unchanged; `console_petite_degraded_oep_regression.ps1` pins the marker on `in_watcom__auto_x86` and asserts it is non-vacuous (emitted EP 0x1000 vs oracle EP 0x1016). |
 | Yoda's Protector | `PE32: Yoda's Protector` | Yes | **Yes** | PE32 only. The official Cisco-Talos ClamAV yC 1.3 fixture restores its 3,072-byte embedded UPX image byte-identically from the 6,226-byte packed input; pinned-oracle, PE-fixup, quota, fail-closed and family-transition checks pass. |
 
 ## Planned / to add later
@@ -588,6 +588,67 @@ equivalent coverage across legacy/list-record and every direct
 single-record/arbitrary-device API.
 Callers still need destination free-space policy and may cancel via `PDSTRUCT`.
 
+The record-based `XArchives` static overloads now carry the limit through to that
+enforcement. `XArchives::decompress`, `decompressToFile` and `decompressToDevice`
+(the `RECORD*` forms and their `QString` variants) and the `unpackStaticRecord`
+helper gained a trailing defaulted property-map parameter and forward it through
+both the XArchive and the static-unpacker branch, so a direct caller of those
+static entry points can finally set `UNPACK_PROP_MAX_OUTPUT_SIZE` and have it
+honoured (previously the map was dropped and the limit resolved to −1). A
+three-way boundary regression in `runLhaRegressions` pins it on `decompress`,
+`decompressToDevice` and the by-name `decompress`: exact size accepted
+byte-identically, one byte less refused, no-limit unchanged. The by-name static
+overloads (`decompress`/`decompressToFile` resolving a record by name) now thread
+the map too, so complaint (d)'s plumbing is complete; only the default/aggregate
+ceiling remains future work (XFU-015).
+
+The additive foundation for that future default/aggregate ceiling is also in
+place, behaviour-neutral: five tail-appended `UNPACK_PROP` enumerators
+(`MAX_TOTAL_OUTPUT_SIZE`, `MAX_ENTRY_COUNT`, `MAX_MEMORY_OUTPUT_SIZE`,
+`REQUIRE_FREE_SPACE`, `MAX_EXPANSION_RATIO`), an `XBinary::OUTPUT_POLICY` struct
+and `OUTPUT_BUDGET` class (an overflow-safe `debit`, always held by
+`QSharedPointer` so a value-copied `DATAPROCESS_STATE` shares the same counters),
+a null `spOutputBudget` on both state structs, and an unreferenced
+`resolveUnpackOutputPolicy()` that supplies the design defaults. Nothing
+constructs a budget yet, so every debit is a no-op; `getUnpackOutputLimit` and
+`isUnpackOutputSizeAllowed` are byte-for-byte unchanged, so the process-wide
+memory clamp is not armed. `runOutputPolicyRegressions` pins the defaults,
+explicit-value precedence, negative-means-unlimited rule, malformed rejection and
+the debit inequality.
+
+That budget is now **wired in shadow mode** across the native extraction routes —
+folder extraction (`XBinary::unpackToFolder`), single-record extraction
+(`XBinary::_unpackRecordByIndex`) and the legacy `_decompressRecord` route — **and
+the compiled-in 7-Zip bridge (ip7z)**. `XBinary::unpackToFolder` mints one `OUTPUT_BUDGET` per operation from the resolved
+policy (default 8 GiB per member, 64 GiB per operation, 262,144 members), threads
+it through a new defaulted `decompressArchiveRecord` parameter into each member's
+`DATAPROCESS_STATE`, and `XBinary::_writeDevice` charges produced bytes against it
+after the existing per-member gate. `debit()`/`beginEntry()` are byte-for-byte
+unchanged; shadow behaviour lives at the call sites, which **ignore** the false
+return and instead count + `qWarning`-log the would-be refusal
+(`XFU-LIMIT-SHADOW/…`) via `OUTPUT_BUDGET::noteShadowRefusal`, enforcing **nothing**.
+`OUTPUT_BUDGET::shadowRefusalCount()` is the differential validation hook.
+`runLhaRegressions` pins it: a low `UNPACK_PROP_MAX_TOTAL_OUTPUT_SIZE` (invisible to
+the per-member gate) makes the meter fire while extraction still succeeds
+byte-identically, and the huge defaults leave the counter at zero. A shadow scan of
+the installer corpus plus the console gate archives at defaults produced zero
+would-be refusals.
+
+For the ip7z route the same `QSharedPointer` budget is minted at the folder root
+(`decompressToFolder`, from the caller's property map) and the single-record root
+(`extractArchiveRecordWithIp7zSource`, from resolver defaults), then threaded through
+`runExtract` → `ArchiveExtractCallback` → `GetStream` (which calls `beginEntry` per
+produced member) → `QtOutStream::Write`, the bridge's single produced-byte choke,
+where each decoded chunk is debited once. The runtime `LimitedWriteDevice` bound, the
+ip7z hard caps, and the staged `copyFileTransactional` merge (never on the
+`QtOutStream` path, so already-decoded bytes are never re-debited) are all untouched.
+`runLhaRegressions` fire-tests it with a 221-byte RAR3 solid fixture (RAR decompresses
+only through ip7z): a low aggregate total fires `REFUSAL_TOTAL` while both members
+still extract, and the default-limit control stays at zero. A differential over 55
+real ip7z archives (30 in-repo RAR + 25 7-Zip → 129 files / 1.17 MB) at defaults
+logged zero would-be refusals. Enforcement stays off (this is shadow only); only the
+custom-`unpackCurrent` (XUDF/XASAR) routes remain unmetered (XFU-015).
+
 Two routes that accepted the limit but did not apply it were repaired. The ARJ
 decoder writes through its own `arjWriteAll`, which reimplements
 `XBinary::_writeDevice`'s window arithmetic but omitted its output-limit gate, so
@@ -598,6 +659,14 @@ caller-supplied output device was covered by nothing but the declared-size
 preflight — which is skipped whenever the handler reports no trustworthy size,
 that is, precisely the single-stream gzip/xz/bzip2 handlers. The bound now wraps
 whichever device was selected.
+
+`XUCLDecoder::decompress` (the UPX UCL/NRV whole-buffer path) was the one
+full-size output allocator without the peer-standard `isUnpackOutputSizeAllowed`
+pre-check ahead of its header-declared `QByteArray` allocation; it now runs that
+guard like every sibling decoder. Its sole caller (`XUPX`) threads no limit
+today, so this is defence-in-depth that arms automatically once a limit reaches
+that path — verified no-regression by the UPX corpus (a 3.95 NRV sample still
+restores to a valid PE).
 
 A compression-ratio ceiling is deliberately not offered. DEFLATE's structural
 maximum is roughly 1032:1 and a benign local fixture reaches 1023.5:1
@@ -675,6 +744,12 @@ the workable control.
 - Console record collection now follows the streaming cursor contract and calls
   `moveToNext()` only between declared records. Single-record ASPack, FSG, MEW,
   NsPack, and Petite outputs are no longer discarded after successful parsing.
+- The GUI archive explorer (`ArchiveExplorerWidget::loadRecords`) now applies the
+  same Mode A acceptance as the console/`getArchiveRecords` path, so single-record
+  packers list with Extract/Test enabled instead of collapsing to the `(file)`
+  placeholder, and it always calls `finishUnpack` (closing an `UNPACK_CONTEXT`
+  leak on the early-exit path). Compile-verified; runtime GUI confirmation is
+  still gated on a headless harness (XFU-022).
 - Console archive listing now performs archive/static subtype refinement even
   when the preliminary scan returned `Binary`, `MSDOS`, PE, or CFBF. This makes
   native-only structural readers and semantic MSI/WiX listing reachable without
@@ -748,13 +823,15 @@ the workable control.
 | Bounded 317-file archive safety smoke | 289 successful listings; 28 clean nonzero results (2 password-required 7z, 25 embedded non-standalone raw-deflate candidates, 1 split-ZIP `.z01`); zero crashes, timeouts, output overruns, source mutations, or corpus changes. |
 | ACE per-member solidity regression | All three ACE fixtures extract to the shared 5,040-byte payload, SHA-256 `583279d2...441e37` - the same bytes the ZOO and SAR fixtures produce, so the method-1 LZ77+Huffman decoder is confirmed against two unrelated readers rather than against itself. None of the three extracted before: the archive-level SOLID flag refused them all, the stored one included. The selftest now asserts the new contract in both directions - a solid archive's first stored and first compressed member decode, while the first member of a solid *continuation volume* is still refused, since it does depend on the previous volume's dictionary. Password, split-before/after and unsupported-TECH.TYPE members still reject. |
 | lzop compression-level regression | All 15 local `.lzo` archives extract, up from 11: `lzop -7`, `-8`, `-9` and `--best` are LZO1X-999 (method 3), which is the only compressor that emits the M1 short-match opcode, and that opcode was rejected outright. The twelve level fixtures are one source file at every level, so they are their own oracle - all twelve now decode to a single identical 19,400-byte payload, SHA-256 `ddd6b4fd...41efaa1`. The five malformed-LZO negative cases in the selftest still reject. |
-| Qt 5 GUI build and start-up | A dedicated `-DBUILD_GUI=ON` cache (`xfu_gui_build`, Qt 5.15.2, MSVC 2022 x64) configured and built both targets with zero errors, producing `src/gui/Release/xfileunpacker.exe` linked against the current library — including the new SAR type, the appended handler-method values and the SEA ARC decoder. After `windeployqt`, the application launched and was still running after eight seconds, so the main window is constructed without faulting. This is initialization evidence; no archive operation was driven through the UI. |
+| Qt 5 GUI build and liveness smoke | A dedicated `-DBUILD_GUI=ON` cache (`xfileunpacker_gui_build`, Qt 5.15.2, MSVC 2022 x64) configures and builds the `XFileUnpacker` target with zero errors, producing `src/gui/Release/xfileunpacker.exe`. This required fixing a real build gap — the GUI compiled `xyara.cpp` (via FormatWidgets) but never linked libyara, failing with 9 unresolved `yr_*` externals; `src/gui/CMakeLists.txt` now builds and links the `_mylibs/XYara/3rdparty/yara` static lib. `tests/gui_smoke.ps1` then launches the exe under the `offscreen` platform with settings sandboxed (a `portable` marker + APPDATA/HOME redirect) and confirms it survives in the event loop without faulting — an empty window, then each available Mode A single-record packer (MEW/ASPack/FSG/NsPack/Petite) opened via argv, which routes `openFile` → `setData` → `ArchiveExplorerWidget::loadRecords` and so runtime-exercises the XFU-040 Mode-A path across the packer families. This is liveness/load evidence; no interactive action is driven and no widget state is asserted (that needs the in-process harness still open under XFU-022). |
 | Documentation/test-source audit | Every Markdown table had a consistent column count, code fences were balanced, no trailing whitespace was present, all reproduced test paths existed, and all 23 PowerShell test scripts parsed successfully. |
 
-The GUI results above are build/link and start-up checks, not interactive
-runtime tests. A real GUI open/list/extract/test smoke remains in Planned work,
-and `run/build.bat` still builds the console only, so the GUI compile path has
-to be selected deliberately.
+The GUI smoke above is a build/link and liveness check (`tests/gui_smoke.ps1`),
+not an interactive runtime test. A functional GUI open/list/extract/test smoke —
+driving widget actions and asserting state, which would also runtime-verify
+XFU-040 — still needs an in-process QTest/QApplication harness and remains open
+under XFU-022. `run/build.bat` also still builds the console only, so the GUI
+compile path has to be selected deliberately.
 
 ### Reproduce the main gates
 
@@ -772,6 +849,7 @@ $runner = "F:\ownCloud\prepare\qt5\game_archive_selftest_build\Release\test_inst
 & $runner --fpscan=F:\ownCloud\binary_examples\packed --expect-count=603
 
 $console = "F:\ownCloud\prepare\qt5\game_archive_cli_build\src\console\Release\xfileunpackerc.exe"
+& .\tests\console_smoke.ps1 -ConsoleExe $console
 & .\tests\console_package_type_regression.ps1 -ConsoleExe $console
 & .\tests\console_encryption_regression.ps1 -ConsoleExe $console
 & .\tests\console_nested_filter_regression.ps1 -ConsoleExe $console
@@ -802,6 +880,14 @@ $console = "F:\ownCloud\prepare\qt5\game_archive_cli_build\src\console\Release\x
     -PackedSys F:\ownCloud\file_formats2\dos_sys_filter\packed\ver_5_1_1_upx_best_dos_sys_filter.sys `
     -OriginalSys F:\ownCloud\file_formats2\dos_sys_filter\clear\dos_sys_filter.sys `
     -QtBin C:\Qt\5.15.2\msvc2019_64\bin
+
+# GUI: configure/build the dedicated -DBUILD_GUI=ON cache once, then smoke-launch
+# it offscreen. (The console-only build.bat does not build the GUI.)
+cmake -S F:\ownCloud\prepare\qt5\xfileunpacker_source -B F:\ownCloud\prepare\qt5\xfileunpacker_gui_build `
+    -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/5.15.2/msvc2019_64 -DBUILD_GUI=ON
+cmake --build F:\ownCloud\prepare\qt5\xfileunpacker_gui_build --config Release --target XFileUnpacker -- -m
+$gui = "F:\ownCloud\prepare\qt5\xfileunpacker_gui_build\src\gui\Release\xfileunpacker.exe"
+& .\tests\gui_smoke.ps1 -GuiExe $gui
 ```
 
 Application builds now default `WITH_XEMULATOR=ON`, matching the corpus runner,
