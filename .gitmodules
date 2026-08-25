@@ -142,3 +142,6 @@
 [submodule "dep/yara_widget"]
 	path = dep/yara_widget
 	url = https://github.com/horsicq/yara_widget
+[submodule "dep/XEmulator"]
+	path = dep/XEmulator
+	url = https://github.com/horsicq/XEmulator
