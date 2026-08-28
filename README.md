@@ -6,8 +6,9 @@ A generic file unpacking utility with both Console (CLI) and Graphical User Inte
 
 - **Console Application**: Command-line interface for batch processing
 - **GUI Application**: User-friendly graphical interface
-- **Built-in 7-Zip engine**: 7-Zip 26.01 archive handlers and codecs are
-  compiled from source; no `7z.exe` or `7z.dll` is required at runtime
+- **Native archive engine**: ZIP, 7z, RAR, CAB, TAR and the other documented
+  formats are parsed and unpacked by XArchive without a `7z.exe` or `7z.dll`
+  runtime dependency
 - **Encrypted archives**: Password entry is available in the archive-content
   view; the CLI accepts text, secure standard-input, or exact legacy password
   bytes and can override the code page used by non-Unicode Inno Setup data
@@ -101,8 +102,8 @@ XFileUnpacker/
 
 ## License
 
-XFileUnpacker is MIT-licensed; see [LICENSE](LICENSE). The built-in 7-Zip
-engine and supplemental source-derived codecs have separate terms described in
+XFileUnpacker is MIT-licensed; see [LICENSE](LICENSE). Supplemental
+source-derived codecs have separate terms described in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Contributing

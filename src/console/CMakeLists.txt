@@ -52,7 +52,6 @@ target_link_libraries(xfileunpackerc PRIVATE
     lzma
     zlib
     ppmd
-    xarchive_7zip
     Qt${XFILEUNPACKER_QT_MAJOR}::Core
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     ${XFILEUNPACKER_COMPAT_LIBS}
