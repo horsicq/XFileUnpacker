@@ -72,11 +72,15 @@ XFileUnpacker-CLI [options] <file>
 Archive operations accept one of `--password`, `--password-stdin`, or
 `--password-hex`. For legacy non-Unicode Inno Setup installers,
 `--codepage NUMBER` selects the Windows code page used for filenames and
-text-password bytes:
+text-password bytes. Automatic archive/SFX detection has a 20,000 ms budget
+per target; `--probe-timeout MILLISECONDS` changes it and `0` explicitly
+disables it. Budget exhaustion prints `Detection budget exceeded` and returns
+exit code 6, distinct from an unsupported archive (exit code 2):
 
 ```bash
 xfileunpackerc --password legacy-password --extractarchive out setup.exe
 xfileunpackerc --password-hex efe0f0eeebfc --codepage 1251 --extractarchive out setup.exe
+xfileunpackerc --probe-timeout 5000 --listarchive setup.exe
 ```
 
 ## Project Structure
