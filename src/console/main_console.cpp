@@ -25,8 +25,8 @@
 #include <QCoreApplication>
 
 #include "../global.h"
+#include "xarchiveconsole.h"
 #include "xoptions.h"
-#include "xscanengineconsole.h"
 
 namespace {
 
@@ -60,8 +60,10 @@ int main(int argc, char *argv[])
     xsimd_init();
 #endif
 
-    XScanEngine scanEngine;
-    XScanEngineConsole scanEngineConsole(application, scanEngine, buildDescription());
+    // XFileUnpacker is an archive tool, so its console is XArchiveConsole: it
+    // owns the native command line, dispatches the 7-Zip and Info-ZIP dialects,
+    // and carries the XFormats-backed viewers. No scan engine is involved.
+    XArchiveConsole archiveConsole;
 
-    return scanEngineConsole.process();
+    return archiveConsole.process(application, buildDescription());
 }

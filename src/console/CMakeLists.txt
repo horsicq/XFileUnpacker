@@ -5,9 +5,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_definitions(-DUSE_ARCHIVE)
 add_definitions(-DUSE_XSIMD)
-if(USE_DIE)
-    add_definitions(-DUSE_DIE)
-endif()
+# No USE_DIE here: the console front end is XArchiveConsole and runs no
+# signature scan. The GUI keeps its Detect It Easy integration.
 
 if(WIN32)
     add_definitions(-DNOMINMAX)
@@ -19,7 +18,12 @@ if(MSVC)
     add_compile_options($<$<CONFIG:Debug>:/Z7> $<$<CONFIG:RelWithDebInfo>:/Z7>)
 endif()
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XScanEngine/xscanengineconsole.cmake)
+# The console front end is XArchiveConsole, not XScanEngineConsole: this
+# executable is an unpacker, and the scan-engine console would drag in the
+# signature engine and its database handling for commands it never runs.
+# XArchiveConsole carries the archive commands plus the XFormats-backed
+# viewers (-i, -e, -S, -w), which need no scan engine.
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XArchive/xarchiveconsole.cmake)
 
 # Static unpackers (Inno Setup, NSIS, UPX, ...). Included after Formats/XArchive so its guards
 # skip re-adding those; defines USE_STATICUNPACKER, enabling the packer/installer branches in
@@ -33,7 +37,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 add_executable(xfileunpackerc
-    ${XSCANENGINECONSOLE_SOURCES}
+    ${XARCHIVECONSOLE_SOURCES}
     ${XSTATICUNPACKER_SOURCES}
     main_console.cpp
 )
