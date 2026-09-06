@@ -1,17 +1,27 @@
+Recovered U3 coverage, command compatibility and remaining gaps are tracked
+separately in [U3_PARITY.md](U3_PARITY.md). The rows below describe supported
+subsets, not complete U3 equivalence.
+
 | Archive / container format | Common extensions or identity | Detect | List | Extract | Current supported scope |
 |---|---|---:|---:|---:|---|
 | 7-Zip | `.7z` | Yes | Yes | Yes | Self-contained archives using Copy, LZMA, LZMA2, Deflate, Deflate64, BZip2, PPMd7, Zstandard, Brotli, LZ4, LZ5, Lizard, branch filters, or AES-256; external folder and filename streams are unsupported |
 | ZIP / ZIPX | `.zip`, `.zipx` | Yes | Yes | Yes | Single-disk, non-ZIP64 archives using Store, Shrink, Reduce, Implode, Deflate, Deflate64, BZip2, LZMA, XZ, Zstandard, PPMd8, WinZip JPEG (method 96), WavPack (method 97), ZipCrypto, or WinZip AES; WinZip MP3 (method 94) has no published specification and is not supported |
 | RAR / RAR5 | `.rar` | Yes | Yes | Yes | Single-volume RAR 1.5, 2.x, 2.9, 5, and 7 method families; RAR5 AES |
 | ARJ | `.arj` | Yes | Yes | Yes | Store, methods 1–4, and ARJ garble |
-| LHA / LZH | `.lha`, `.lzh` | Yes | Yes | Bounded | Stored `lh0`, `lz4`, and `lhd` records plus `lh1` and `lh4`–`lh7`; LHA SFX also reaches the historical LArc `lz5` dialect through the contained Deark reader |
+| LHA / LZH | `.lha`, `.lzh` | Yes | Yes | Bounded | Stored `lh0`, `lz4`, and `lhd` records plus `lh1`, `lh4`–`lh7`, and PM0/PM1/PM2; LHA SFX also reaches the historical LArc `lz5` dialect through the contained Deark reader |
 | ZOO | `.zoo` | Yes | Yes | Yes | Store, LZD, and LZH records |
 | FLS (SaveRam/SaveRam2) | OS/2 SaveRam record table and `SaveRam` banner | Yes | Yes | Yes | Stored and `S`-tag adaptive-codec members; all 116 corpus records use exact packed/output bounds, CP437 names, and DOS timestamps; extended-attribute blobs are not exposed |
 | RTPatch | `.rtp`, `.stp`, `K*` package header | Yes | Yes | Bounded | Versions 1.10, 2.00, 2.11, 4.10, 5.00, and 6.50; package banners and whole-file streams with validated source-free framing extract in every supported generation; binary deltas require the pre-patch source and remain listed but fail closed |
 | SAR | `.sar` | Yes | Yes | Bounded | `LH0`, `LH4`, and `LH5` records |
 | ARX | `.arx` | Yes | Yes | Yes | LZH1 records |
 | ACE | `.ace` | Yes | Yes | Bounded | Stored and method-1 records; first independent solid member |
-| SEA ARC / PAK 2.51 | `.arc`, ARC/PAK member headers | Yes | Yes | Bounded | Methods 2, 3, 4, 8, 9, 10 (PAK Crushed), and 11 (PAK Distilled); original Crunch methods 5–7 remain identified and fail closed |
+| SEA ARC / PAK 2.51 | `.arc`, ARC/PAK member headers | Yes | Yes | Bounded | Methods 2–11, including recovered hash-LZW/RLE methods 5–7 and corrected Distilled method 11 trees/matches; 0x7f Unix-compress compatibility records |
+| Git Object | Loose zlib `blob` object | Yes | Yes | Bounded | Native blob bytes, declared length and optional object-name SHA1; commit/tree/tag objects and packs are outside this handler |
+| ALZ | `.alz`, `ALZ\1` | Yes | Yes | Bounded | STORE and raw DEFLATE with CRC32; method 1 and encrypted payloads are unsupported |
+| CHM | `.chm`, `ITSF` | Yes | Yes | Bounded | ITSF v2/v3 plain and LZXC v2 resources with U3 internal-resource filters; other transforms/Help versions are unsupported |
+| Descent 3 HOG2 | `.hog`, `.mn3`, `HOG2` | Yes | Yes | Bounded | Adjacent table and STORE payloads, names and timestamps; distinct from Descent 1/2 DHF/HOG |
+| Bohemia PBO | `.pbo` | Yes | Yes | Bounded | STORE/Cprs LZSS, optional Vers properties, compressed-member checksum and optional SHA1 footer; encrypted methods and Elite footer unsupported |
+| SQLite text export | `.sqlite`, SQLite format 3 | Yes | Yes | Bounded | One UTF-16LE U3-style TEXT export per table; not an SQL dump; no WAL replay or WITHOUT ROWID export |
 | Crusher ARQ | `.arq`, `gW` container | Yes | Yes | Yes | LH5-compatible members with packed-stream CRC-32 validation, exact declared sizes, and safe path restoration |
 | Squeeze It SQZ | `.sqz`, `HLSQZ` member chain | Yes | Yes | Yes | Store and methods 1–4 with CRC-32, exact output sizes, DOS timestamps, and bounded linked-record traversal |
 | FoxPro FPAK | `.pak`, `FPAK` / `FPAC` volumes | Yes | Yes | Yes | Version-1 and version-2 FPPF members using FoxPro Implode; adjacent continuation volumes are joined and CRC-32 verified, while missing volumes fail closed |
@@ -38,6 +48,10 @@
 | Quake PAK | `.pak` | Yes | Yes | Yes | File-directory records and payloads |
 | Doom WAD | `.wad` | Yes | Yes | Yes | Lump-directory records and payloads |
 | Build GRP | `.grp` | Yes | Yes | Yes | File-directory records and payloads |
+| Godot PCK | `.pck`, `GDPC` v1/v2 | Yes | Yes | Yes | Stored resource records with UTF-8 paths, MD5 metadata, and both v2 file-base modes; encrypted directories or members fail closed |
+| AmigaDOS ADF | `.adf`, `DOS\x00` / `DOS\x01` | Yes | Yes | Yes | Standard 880 KiB OFS and FFS filesystem images; directory hash chains, regular files, and block ranges are validated before extraction |
+| Wii Backup File System | `.wbfs`, `WBFS` | Yes | Yes | Yes | Each embedded Wii disc is exposed as one reconstructed `.iso`; absent WBFS sectors are zero-filled, so extraction can expand a small backup into a full disc image |
+| Dolphin RVZ | `.rvz`, `RVZ\x01` | Yes | Yes | Yes | GameCube RVZ v1 images using stored or Zstandard groups are exposed as a reconstructed `.iso`; Wii partition RVZ images and unsupported codecs fail closed |
 | CKP | `.ckp`, `.CKP\x00\x01` identity | Yes | Yes | Yes | Native store-only resource table, decoded names, and safe path restoration |
 | EdgeDataPak | `.edp`, `.EDP\x00\x01` identity | Yes | Yes | Yes | Native store-only resource table with decoded UTF-16LE names and safe path restoration |
 | Blizzard MPQ | `.mpq`, `MPQ\x1A` archive or `MPQ\x1B` user-data wrapper | Yes | Yes | Bounded | Classic hash/block tables; stored, zlib, bzip2, and PKWARE DCL sectors; absent listfiles use stable synthetic names; encrypted members use filename keys, sector-table recovery, or strongly validated known structures such as nested MPQ headers, otherwise extraction fails closed |
@@ -61,6 +75,9 @@
 | LZMA-alone | `.lzma` | Yes | Yes | Yes | LZMA-alone streams |
 | lzip | `.lz` | Yes | Yes | Yes | lzip members and checksums |
 | Unix compress | `.Z` | Yes | Yes | Yes | LZW-compress streams |
+| RZIP | `.rz`, `RZIP` | Yes | Yes | Bounded | v2.0/v2.1 STORE/BZIP2 chunks with raw CRC32 and overlapping history copies |
+| CP/M Crunch / CPMLZH | CP/M compressed-file headers | Yes | Yes | Bounded | Recovered Crunch v1/v2 dictionary/RLE90 and CPMLZH adaptive Huffman/LZSS |
+| Unix Compact | Unix Compact stream | Yes | Yes | Bounded | Recovered literal/tree/EOF decoder |
 | Zstandard | `.zst`, `.zstd` | Yes | Yes | Yes | Zstandard frames |
 | LZ4 | `.lz4` | Yes | Yes | Yes | LZ4 framing |
 | LZ5 | `.lz5` | Yes | Yes | Yes | LZ5 framing |
@@ -92,6 +109,8 @@
 | ISO 9660 / Joliet / CUE | `.iso`, `.cue`, raw optical images | Yes | Yes | Bounded | ISO/Joliet content from the first valid Mode-1 or Mode-2 Form-1 data track |
 | UDF | UDF optical image | Yes | Bounded | Bounded | Basic single-partition images with directly usable allocation addresses and a single short/long extent or inline allocation; bridge images require explicit UDF routing |
 | Apple DMG | `.dmg` | Yes | Yes | Bounded | Store, zlib, and BZip2 stripes; ADC, LZFSE, and XZ stripes are unsupported |
+| VHD / VDI / QCOW2 / VHDX | Virtual disk allocation maps | Yes | Yes | Bounded | Validated standalone mappings with `disk.raw` export; optional NTFS user-file view; parent/differencing and unsupported allocation states are refused |
+| NTFS | Raw NTFS or supported primary type-7 MBR partitions | Yes | Yes | Bounded | Resident, fragmented, sparse and initialized-tail user DATA; U3 metadata filtering; GPT, other filesystems, attribute-list continuation and compressed/encrypted/reparse files unsupported |
 
 | Package format | Common extensions or identity | Detect | List | Extract | Current supported route |
 |---|---|---:|---:|---:|---|
@@ -131,8 +150,9 @@
 | ZIP SFX | PE, ELF, DOS MZ/NE, Atari GEMDOS/EXEC, or DOS COM wrapper with an embedded ZIP archive | Yes | Yes | Yes | Single-disk, non-ZIP64 payloads with strict central/local validation and delegated extraction; overlay-bearing carriers search the unmapped suffix, while COM and Atari carriers use a bounded complete-image scan; the stub is never executed |
 | RAR SFX | PE, ELF, DOS MZ/NE, Atari GEMDOS/EXEC, or DOS COM wrapper with an embedded RAR archive | Yes | Yes | Yes | Single-volume RAR payloads with a family-specific generic identity distinct from WinRAR attribution; overlay-bearing carriers search the unmapped suffix, while COM and Atari carriers use a bounded complete-image scan; the stub is never executed |
 | CAB SFX | PE, ELF, DOS MZ/NE, Atari GEMDOS/EXEC, or DOS COM wrapper with an embedded Microsoft Cabinet archive | Yes | Yes | Yes | Non-spanned cabinet payloads with delegated extraction; overlay-bearing carriers search the unmapped suffix, while COM and Atari carriers use a bounded complete-image scan; the stub is never executed |
-| LHA SFX | DOS MZ, Atari GEMDOS/EXEC, or DOS COM stub with an appended LHA/LZH archive | Yes | Yes | Yes | LHarc 1.13 DOS stubs and Atari `LHA's SFX` v3.x stubs; `lh0`, `lh1`, and `lh4`–`lh7` payloads plus LArc `lz5` via the contained Deark reader; the stub is never executed |
-| ARC SFX | Executable wrapper with an embedded SEA ARC or PAK 2.51 archive | Yes | Yes | Bounded | Methods 2, 3, 4, 8, 9, 10 (PAK Crushed), and 11 (PAK Distilled) are delegated to the native reader; methods 5–7 fail closed and the stub is never executed |
+| LHA SFX | DOS MZ, Atari GEMDOS/EXEC, or DOS COM stub with an appended LHA/LZH archive | Yes | Yes | Bounded | LHarc 1.13 DOS stubs and Atari `LHA's SFX` v3.x stubs; `lh0`, `lh1`, and `lh4`–`lh7` payloads plus LArc `lz5` via the contained Deark reader; PM0/PM1/PM2 use native XLHA; exact PMA `-pms-` envelopes require a nonempty validated member chain and bounded CP/M padding; the stub is never executed |
+| ARC SFX | Executable wrapper with an embedded SEA ARC or PAK 2.51 archive | Yes | Yes | Bounded | Methods 2–11 are delegated to the native ARC reader, including recovered 5–7 and corrected Distilled behavior; the stub is never executed |
+| BZIP2 SFX | Supported executable carrier with a BZIP2 stream | Yes | Yes | Bounded | Complete BZIP2 framing/checksums, concatenated and empty streams; output name follows the outer basename with its final extension removed |
 | ARJ SFX | Executable wrapper with an embedded ARJ archive | Yes | Yes | Yes | Store, methods 1–4, and ARJ garble through the native ARJ reader; the stub is never executed |
 | Crusher ARQ SFX | Executable wrapper with an embedded `gW` Crusher archive | Yes | Yes | Yes | Packed-stream CRC-32 validation and LH5-compatible member extraction through the native ARQ reader; the stub is never executed |
 | Squeeze It SQZ SFX | Executable wrapper with an embedded `HLSQZ` chain | Yes | Yes | Yes | Store and SQZ methods 1–4 with CRC-32 verification through the native SQZ reader; the stub is never executed |

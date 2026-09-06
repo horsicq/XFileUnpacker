@@ -190,11 +190,7 @@ void GuiMainWindow::on_actionTest_triggered()
         return;
     }
 
-    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
-    const QString sPassword = ui->centralwidget->getPassword();
-    if (!sPassword.isEmpty()) {
-        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
-    }
+    const QMap<XBinary::UNPACK_PROP, QVariant> mapProperties = ui->centralwidget->getUnpackProperties();
 
     DialogUnpackFile dialogUnpackFile(this);
     dialogUnpackFile.setDataTest(sFileName, mapProperties);
@@ -344,11 +340,7 @@ QString GuiMainWindow::getCurrentFileName() const
 
 bool GuiMainWindow::extractArchive(const QString &sFileName, const QString &sResultFolder)
 {
-    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
-    const QString sPassword = ui->centralwidget->getPassword();
-    if (!sPassword.isEmpty()) {
-        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
-    }
+    const QMap<XBinary::UNPACK_PROP, QVariant> mapProperties = ui->centralwidget->getUnpackProperties();
 
     DialogUnpackFile dialogUnpackFile(this);
     dialogUnpackFile.setData(sFileName, sResultFolder, mapProperties);

@@ -175,11 +175,7 @@ void DialogArchiveContents::onExtractAllRequested()
     }
 
     DialogUnpackFile dialogUnpackFile(this);
-    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
-    const QString sPassword = ui->widgetArchive->getPassword();
-    if (!sPassword.isEmpty()) {
-        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
-    }
+    const QMap<XBinary::UNPACK_PROP, QVariant> mapProperties = ui->widgetArchive->getUnpackProperties();
     dialogUnpackFile.setData(g_sFileName, sResultFolder, mapProperties);
     dialogUnpackFile.showDialogDelay();
 
@@ -192,11 +188,7 @@ void DialogArchiveContents::onExtractAllRequested()
 
 void DialogArchiveContents::onTestRequested()
 {
-    QMap<XBinary::UNPACK_PROP, QVariant> mapProperties;
-    const QString sPassword = ui->widgetArchive->getPassword();
-    if (!sPassword.isEmpty()) {
-        mapProperties.insert(XBinary::UNPACK_PROP_PASSWORD, sPassword);
-    }
+    const QMap<XBinary::UNPACK_PROP, QVariant> mapProperties = ui->widgetArchive->getUnpackProperties();
 
     DialogUnpackFile dialogUnpackFile(this);
     dialogUnpackFile.setDataTest(g_sFileName, mapProperties);

@@ -12,10 +12,10 @@ A generic file unpacking utility with both Console (CLI) and Graphical User Inte
 - **Encrypted archives**: Password entry is available in the archive-content
   view; the CLI accepts text, secure standard-input, or exact legacy password
   bytes and can override the code page used by non-Unicode Inno Setup data
-- **Native supplemental readers**: Quake PAK, Doom WAD, Build GRP, WARC,
-  safe self-contained mtree, UU and begin-base64 transport, AFIO CPIO,
-  LZ4/TAR.LZ4, and nested compression filters are handled in-process without
-  linking or loading libarchive
+- **Native supplemental readers**: Quake PAK, Doom WAD, Build GRP, Godot PCK,
+  AmigaDOS ADF, Wii WBFS, GameCube RVZ, WARC, safe self-contained mtree, UU
+  and begin-base64 transport, AFIO CPIO, LZ4/TAR.LZ4, and nested compression
+  filters are handled in-process without linking or loading libarchive
 - **Qt5/Qt6 Support**: Automatically detects and uses available Qt version
 - **Cross-platform**: Works on Windows, macOS, and Linux
 
@@ -25,6 +25,9 @@ See [doc/CURRENT.md](doc/CURRENT.md) for the current format support matrix —
 every archive, compressor, disk image and package format, with per-format
 detect / list / extract status, the codecs behind each one, and the known
 limitations.
+
+See [doc/U3_PARITY.md](doc/U3_PARITY.md) for the recovered U3 handlers,
+the explicit `--u3` command grammar, NTFS guest-disk mode and remaining gaps.
 
 ## Version
 
@@ -86,33 +89,35 @@ xfileunpackerc --probe-timeout 5000 --listarchive setup.exe
 ### POSIX option syntax
 
 The native command line follows the POSIX Utility Syntax Guidelines: single
-character options, groupable when they take no argument (`-tv`), option
+character options, groupable when they take no argument (`-lb`), option
 arguments as a separate or attached token (`-C out` or `-Cout`), `--` to end
 the options, order between options irrelevant, and repeatable options that
-accumulate. Operation letters follow POSIX tar -- `-t` is the table of
-contents, `-x` extracts -- with GNU tar's spellings where POSIX has none.
+accumulate. `-x` extracts, as in POSIX tar, with GNU tar's spellings where
+POSIX has none; listing is `-l`, the unzip/7-Zip spelling.
 
 Operations, at most one per invocation:
 
 | Option | Long form | Operation |
 |---|---|---|
-| `-t` | `--list` | List archive contents |
+| `-l` | `--list` | List archive contents |
 | `-x` | `--extract` | Extract members |
+| `-c` | `--create` | Create a ZIP from the files that follow |
 | `-W` | `--verify` | Verify integrity, write nothing |
 | `-O` | `--to-stdout` | Write selected members to standard output |
 | `-i` | `--info` | Show file information (default for a bare target) |
 | `-e` | `--entropy` | Show entropy |
 | `-s NAME` | `--struct=NAME` | Show one named structure |
 | `-S` | `--structs` | Show every available structure |
-| `-L` | `--formats` | List container formats this build can open |
+| | `--formats` | List container formats this build can open |
 
 Modifiers:
 
 | Option | Long form | Meaning |
 |---|---|---|
-| `-C DIR` | `--directory=DIR` | Extract into DIR |
+| `-C DIR` `-o DIR` | `--directory=DIR` | Extract into DIR |
+| | `--method=M` | Compression for `-c`: deflate (default) or store |
+| | `--manifest=FILE` | Write a JSON manifest of every extracted record |
 | `-f FILE` | `--file=FILE` | Archive to operate on (repeatable) |
-| `-X PAT` | `--exclude=PAT` | Skip matching members (repeatable) |
 | | `--include=PAT` | Keep only matching members; operands do the same |
 | `-k` | `--keep-old-files` | Keep existing destination files |
 | | `--overwrite=MODE` | always (default), skip, rename |
@@ -125,54 +130,52 @@ Modifiers:
 | | `--probe-timeout=MS` | Format-probe budget, 0 disables |
 | | `--stop-on-error` | Strict all-or-nothing extraction |
 | `-F TYPE` | `--filetype=TYPE` | Force the container type |
-| `-o FMT` | `--format=FMT` | native, technical, unzip, unzip-verbose, zipinfo, json, xml, csv, tsv, text |
-| `-v` | `--verbose` | Verbose output |
+| | `--format=FMT` | text (default), json, xml, csv, tsv |
+| `-b` | `--verbose` | Verbose output |
 | `-q` | `--quiet` | Suppress progress and summary lines |
 | `-N` | `--no-color` | Disable colour |
 | `-h` | `--help` | Help |
-| `-V` | `--version` | Version |
+| `-v` | `--version` | Version |
 
 Member selection uses operands, as in tar and unzip: the first operand is the
 archive and the rest are member patterns.
 
 ```bash
-xfileunpackerc -tv archive.7z            # verbose table of contents
+xfileunpackerc -lb archive.7z            # verbose table of contents
 xfileunpackerc -x -C out archive.7z      # extract into out/
 xfileunpackerc -x -C out a.zip 'docs/*'  # extract only docs/
-xfileunpackerc -t -X '*.tmp' a.zip       # list, minus the temporaries
 xfileunpackerc -W -P secret a.rar        # verify an encrypted archive
 xfileunpackerc -O a.zip readme.txt       # one member to standard output
+xfileunpackerc -c out.zip src            # pack src/ into out.zip (deflate)
+xfileunpackerc -c out.zip --method store src
+xfileunpackerc -x -o out --manifest m.json a.zip
 ```
 
 Every long option this tool shipped before is kept as an alias, so existing
-scripts keep working: `--listarchive`/`--showarchive` (`-t`),
+scripts keep working: `--listarchive`/`--showarchive` (`-l`),
 `--extractarchive DIR` (`-x -C DIR`), `--testarchive`/`--test` (`-W`),
 `--stdout` (`-O`), `--showstructs` (`-S`), `--listformats` (`-L`),
 `--nocolor` (`-N`), `--stoponerror`, and `--xml`/`--json`/`--csv`/`--tsv`/
 `--plaintext` (`-o FMT`).
 
-Note that `-V` is version and `-v` is verbose, per POSIX; Qt's built-in version
-option would have taken `-v`, so this console registers its own.
+`-v` is Qt's version option, so verbosity keeps the `-b` this project's other
+consoles already use.
 
-### 7-Zip and Info-ZIP compatible syntax
+### 7-Zip compatible syntax
 
-`xfileunpackerc` also accepts 7-Zip and Info-ZIP `unzip` command lines, so
-existing habits and scripts work unchanged. The grammar is chosen from the
-program name first, then from a leading 7-Zip verb:
+`xfileunpackerc` also accepts 7-Zip command lines, so existing habits and
+scripts work unchanged. The grammar is chosen from the program name first, then
+from a leading 7-Zip verb:
 
 ```bash
 xfileunpackerc l archive.7z              # 7-Zip: list
 xfileunpackerc x -oout -psecret a.7z     # 7-Zip: extract with paths
 xfileunpackerc t archive.rar             # 7-Zip: test
-xfileunpackerc unzip -l archive.zip      # Info-ZIP: list
-xfileunpackerc unzip -o -d out a.zip     # Info-ZIP: extract, overwrite
-xfileunpackerc unzip -p a.zip readme.txt # Info-ZIP: member to stdout
-xfileunpackerc zipinfo archive.zip       # Info-ZIP: zipinfo listing
 ```
 
-Copying or symlinking the executable to `7z`, `7za`, `7zr`, `unzip` or
-`zipinfo` selects that dialect with no extra token, which makes it a drop-in
-replacement in existing scripts. A leading verb is only taken as a command when
+Copying or symlinking the executable to `7z`, `7za` or `7zr` selects that
+dialect with no extra token, which makes it a drop-in replacement in existing
+scripts. A leading verb is only taken as a command when
 no file of that name exists, so `xfileunpackerc l` still opens a file called
 `l`; `--` forces the file reading.
 
@@ -180,10 +183,6 @@ Supported 7-Zip form: commands `l x e t i` and switches `-o{dir}`,
 `-p{password}`, `-y`, `-ao{a|s|u}`, `-i!{wildcard}`, `-x!{wildcard}`, `-so`,
 `-slt`, `-t{Type}`, `-ssc[-]`, `--`. Compression, recursion and NTFS-metadata
 switches are accepted and ignored, since this is a read-only unpacker.
-
-Supported Info-ZIP form: `-l -v -Z -t -p -c -d dir -j -o -n -q -P password -x
--C --`, a trailing member list, and the zipinfo layout switches. Text
-conversion, permission and pager switches are accepted and ignored.
 
 Exit codes stay this project's own (0 success, 1 not found, 2 cannot open,
 4 bad parameter, 5 partial, 6 probe timeout) in every dialect rather than
@@ -196,12 +195,11 @@ and this project's own options work inside a foreign command line:
 
 ```bash
 xfileunpackerc l --format=json archive.7z          # machine-readable listing
-xfileunpackerc unzip -l --format=json archive.zip
 xfileunpackerc x -oout --password-hex efe0f0eeebfc setup.exe
 ```
 
-`--format` selects `native` (default), `technical` (7-Zip `-slt`), `unzip`,
-`unzip-verbose`, `zipinfo`, or `json`. `--testarchive`, `--stdout`,
+`--format` selects `text` (default), `json`, `xml`, `csv` or `tsv`; each is a
+real encoder for both archive listings and the viewers. `--testarchive`, `--stdout`,
 `--listformats`, `--include`, `--exclude`, `--overwrite` and `--ignore-case`
 are the native spellings of the same commands.
 
@@ -210,6 +208,17 @@ and path flattening (`-j`, 7-Zip `e`) apply to listing and `--stdout` but are
 refused for extraction, and `--overwrite=rename` (7-Zip `-aou`) is refused.
 Both need work in the extraction core rather than in the command layer; they
 report an error instead of silently doing the wrong thing.
+
+### Packing
+
+`-c`/`--create` writes a ZIP. Only ZIP is supported, with `--method deflate`
+(default) or `--method store`; a member that does not get smaller is stored
+regardless. Directories are added recursively under their own name.
+
+The writer has no ZIP64 support: a member over 4 GB, an archive over 4 GB, or
+more than 65535 members is refused rather than written as something a reader
+would misinterpret. Empty directories are not stored, and no member is
+encrypted.
 
 ## Project Structure
 
