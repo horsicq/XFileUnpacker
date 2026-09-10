@@ -1,6 +1,22 @@
-Recovered U3 coverage, command compatibility and remaining gaps are tracked
-separately in [U3_PARITY.md](U3_PARITY.md). The rows below describe supported
-subsets, not complete U3 equivalence.
+The rows below describe supported subsets. Each is the scope the reader
+actually implements, not a claim of complete format coverage.
+
+**For the list of formats this build can actually open, ask the binary:**
+
+```
+xfileunpackerc -i
+```
+
+With no file, `-i` prints every container type the build recognises, grouped
+into tables by category, with the `ID` each row can be forced with via
+`-F/--filetype`. Add `--json` (or `--xml`/`--csv`/`--tsv`) for the same set as a
+flat machine-readable list. Given a file, `-i` still describes that file.
+
+That output is generated from the type registry at run time, so it cannot drift;
+this document is maintained by hand and exists to record the *scope* of each
+reader - which methods, which variants, and what is deliberately refused -
+which the generated list does not carry. Where the two disagree about whether
+something is supported, the binary is right and a row here is stale.
 
 | Archive / container format | Common extensions or identity | Detect | List | Extract | Current supported scope |
 |---|---|---:|---:|---:|---|
@@ -18,10 +34,10 @@ subsets, not complete U3 equivalence.
 | SEA ARC / PAK 2.51 | `.arc`, ARC/PAK member headers | Yes | Yes | Bounded | Methods 2–11, including recovered hash-LZW/RLE methods 5–7 and corrected Distilled method 11 trees/matches; 0x7f Unix-compress compatibility records |
 | Git Object | Loose zlib `blob` object | Yes | Yes | Bounded | Native blob bytes, declared length and optional object-name SHA1; commit/tree/tag objects and packs are outside this handler |
 | ALZ | `.alz`, `ALZ\1` | Yes | Yes | Bounded | STORE and raw DEFLATE with CRC32; method 1 and encrypted payloads are unsupported |
-| CHM | `.chm`, `ITSF` | Yes | Yes | Bounded | ITSF v2/v3 plain and LZXC v2 resources with U3 internal-resource filters; other transforms/Help versions are unsupported |
+| CHM | `.chm`, `ITSF` | Yes | Yes | Bounded | ITSF v2/v3 plain and LZXC v2 resources with internal-resource filters; other transforms/Help versions are unsupported |
 | Descent 3 HOG2 | `.hog`, `.mn3`, `HOG2` | Yes | Yes | Bounded | Adjacent table and STORE payloads, names and timestamps; distinct from Descent 1/2 DHF/HOG |
 | Bohemia PBO | `.pbo` | Yes | Yes | Bounded | STORE/Cprs LZSS, optional Vers properties, compressed-member checksum and optional SHA1 footer; encrypted methods and Elite footer unsupported |
-| SQLite text export | `.sqlite`, SQLite format 3 | Yes | Yes | Bounded | One UTF-16LE U3-style TEXT export per table; not an SQL dump; no WAL replay or WITHOUT ROWID export |
+| SQLite text export | `.sqlite`, SQLite format 3 | Yes | Yes | Bounded | One UTF-16LE TEXT export per table; not an SQL dump; no WAL replay or WITHOUT ROWID export |
 | Crusher ARQ | `.arq`, `gW` container | Yes | Yes | Yes | LH5-compatible members with packed-stream CRC-32 validation, exact declared sizes, and safe path restoration |
 | Squeeze It SQZ | `.sqz`, `HLSQZ` member chain | Yes | Yes | Yes | Store and methods 1–4 with CRC-32, exact output sizes, DOS timestamps, and bounded linked-record traversal |
 | FoxPro FPAK | `.pak`, `FPAK` / `FPAC` volumes | Yes | Yes | Yes | Version-1 and version-2 FPPF members using FoxPro Implode; adjacent continuation volumes are joined and CRC-32 verified, while missing volumes fail closed |
@@ -110,7 +126,7 @@ subsets, not complete U3 equivalence.
 | UDF | UDF optical image | Yes | Bounded | Bounded | Basic single-partition images with directly usable allocation addresses and a single short/long extent or inline allocation; bridge images require explicit UDF routing |
 | Apple DMG | `.dmg` | Yes | Yes | Bounded | Store, zlib, and BZip2 stripes; ADC, LZFSE, and XZ stripes are unsupported |
 | VHD / VDI / QCOW2 / VHDX | Virtual disk allocation maps | Yes | Yes | Bounded | Validated standalone mappings with `disk.raw` export; optional NTFS user-file view; parent/differencing and unsupported allocation states are refused |
-| NTFS | Raw NTFS or supported primary type-7 MBR partitions | Yes | Yes | Bounded | Resident, fragmented, sparse and initialized-tail user DATA; U3 metadata filtering; GPT, other filesystems, attribute-list continuation and compressed/encrypted/reparse files unsupported |
+| NTFS | Raw NTFS or supported primary type-7 MBR partitions | Yes | Yes | Bounded | Resident, fragmented, sparse and initialized-tail user DATA; reserved-metadata filtering; GPT, other filesystems, attribute-list continuation and compressed/encrypted/reparse files unsupported |
 
 | Package format | Common extensions or identity | Detect | List | Extract | Current supported route |
 |---|---|---:|---:|---:|---|

@@ -26,9 +26,6 @@ every archive, compressor, disk image and package format, with per-format
 detect / list / extract status, the codecs behind each one, and the known
 limitations.
 
-See [doc/U3_PARITY.md](doc/U3_PARITY.md) for the recovered U3 handlers,
-the explicit `--u3` command grammar, NTFS guest-disk mode and remaining gaps.
-
 ## Version
 
 **0.1.0** - Initial release
