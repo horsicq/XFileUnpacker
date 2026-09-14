@@ -42,10 +42,6 @@ set(XFILEUNPACKER_GUI_SOURCES
     ${XOPTIONS_SOURCES}
     ${XOPTIONSWIDGET_SOURCES}
     ${XSTYLES_SOURCES}
-    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/dialogunpackfile.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/dialogunpackfile.h"
-    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/unpackfileprocess.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/../../dep/archive_widget/unpackfileprocess.h"
     dialogabout.cpp
     dialogabout.h
     dialogabout.ui
@@ -92,10 +88,6 @@ target_include_directories(XFileUnpacker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(XFileUnpacker PRIVATE
     xsimd
     capstone
-    bzip2
-    lzma
-    zlib
-    ppmd
     Qt${XFILEUNPACKER_QT_MAJOR}::Widgets
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     Qt${XFILEUNPACKER_QT_MAJOR}::Network

@@ -50,10 +50,6 @@ target_include_directories(xfileunpackerc PRIVATE
 target_link_libraries(xfileunpackerc PRIVATE
     xsimd
     capstone_x86
-    bzip2
-    lzma
-    zlib
-    ppmd
     Qt${XFILEUNPACKER_QT_MAJOR}::Core
     Qt${XFILEUNPACKER_QT_MAJOR}::Concurrent
     ${XFILEUNPACKER_COMPAT_LIBS}
